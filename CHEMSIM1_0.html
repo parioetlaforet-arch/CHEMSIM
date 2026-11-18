@@ -1,0 +1,3913 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CHEMSIM - 分子構造 ＆ 3D立体シミュレータ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+    body {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    header {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      padding: 8px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 15px; letter-spacing: 0.05em; color: #38bdf8; }
+    #discovery-counter { font-size: 12px; color: #94a3b8; }
+
+/* メイン作業領域: 横画面は左右並び、縦画面は上下積み */
+    #workspace {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      flex-direction: row;
+    }
+    @media (max-width: 820px) and (orientation: portrait) {
+      #workspace { flex-direction: column-reverse; }
+      header { padding: 3px 10px; justify-content: flex-end; }
+      .pane-header { font-size: 11px; padding: 3px 8px; gap: 6px; }
+      .pane-header > span:first-child {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #atom-count-label, .zoom-control, .zoom-control button { white-space: nowrap; flex-shrink: 0; }
+      #status-panel { padding: 5px 10px; font-size: 11px; max-height: 86px; overflow-y: auto; }
+      #molecule-detail { font-size: 10.5px; line-height: 1.35; }
+    }
+
+    .pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      position: relative;
+      border: 1px solid #1e293b;
+    }
+    .pane-header {
+      background: #1e293b;
+      padding: 5px 10px;
+      font-size: 12px;
+      color: #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+      flex-shrink: 0;
+    }
+
+    /* 2Dパズルステージ: 左辺縦パレット ＋ スクロール専用キャンバス枠 */
+    #puzzle-stage {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    #element-palette {
+      display: flex;
+      flex-direction: column;
+      width: 56px;
+      flex-shrink: 0;
+      background: #0f172a;
+      border-right: 1px solid #334155;
+      padding: 4px;
+      gap: 4px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      z-index: 10;
+    }
+    #element-palette .el-btn {
+      width: 100%;
+      padding: 6px 2px;
+      font-size: 11.5px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    #canvas-2d-viewport {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      overflow: auto;
+      position: relative;
+      background: #0b1120;
+      scrollbar-width: thin;
+    }
+    #canvas-2d {
+      display: block;
+      touch-action: none;
+      background: #0b1120;
+      cursor: grab;
+    }
+    #canvas-2d:active {
+      cursor: grabbing;
+    }
+    #canvas-3d {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      background: #0b1120;
+    }
+
+    /* ステータス＆分子解説バー */
+    #status-panel {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      padding: 6px 12px;
+      font-size: 12px;
+      line-height: 1.4;
+      flex-shrink: 0;
+    }
+    #status-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: bold;
+      margin-right: 6px;
+      background: #334155;
+      color: #e2e8f0;
+    }
+    #status-badge.STABLE_MATCH { background: #059669; color: #ffffff; }
+    #status-badge.UNSTABLE { background: #d97706; color: #ffffff; }
+    #status-badge.UNKNOWN_STRUCTURE { background: #7c3aed; color: #ffffff; }
+    #status-badge.DISCONNECTED { background: #dc2626; color: #ffffff; }
+    #molecule-detail {
+      margin-top: 3px;
+      color: #94a3b8;
+      font-size: 11px;
+    }
+
+    /* L字下辺ツールバー（左辺パレットと直結し、操作頻度順に整列） */
+    #toolbar {
+      background: #0f172a;
+      border-top: 1px solid #334155;
+      padding: 5px 8px;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 10px;
+      align-items: center;
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex-shrink: 0;
+      scrollbar-width: thin;
+    }
+    .btn-group {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 4px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .btn-group + .btn-group {
+      padding-left: 8px;
+      border-left: 1px solid #334155;
+    }
+    button {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      padding: 5px 9px;
+      font-size: 11.5px;
+      font-weight: bold;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    button:active { transform: scale(0.97); }
+    button.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #ffffff;
+    }
+    button.danger {
+      border-color: #7f1d1d;
+      color: #fca5a5;
+    }
+    button.danger.active {
+      background: #dc2626;
+      border-color: #f87171;
+      color: #ffffff;
+    }
+    #btn-clear {
+      margin-left: 6px;
+      border-color: #7f1d1d;
+      color: #fca5a5;
+    }
+ .zoom-control { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #94a3b8; }
+    input[type="range"] { width: 75px; }
+
+    /* 下部折りたたみガイド＆全35分子ヒントドロワー */
+    #guide-drawer {
+      background: #0b1120;
+      border-top: 1px solid #334155;
+      color: #cbd5e1;
+      font-size: 11.5px;
+      flex-shrink: 0;
+    }
+    #guide-drawer summary {
+      padding: 4px 12px;
+      background: #1e293b;
+      color: #38bdf8;
+      font-weight: bold;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #guide-drawer summary::-webkit-details-marker { display: none; }
+    #guide-drawer[open] summary {
+      border-bottom: 1px solid #334155;
+    }
+    .guide-body {
+      max-height: 34vh;
+      overflow-y: auto;
+      padding: 10px 14px;
+      line-height: 1.55;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .guide-body h3 {
+      color: #34d399;
+      font-size: 12px;
+      margin: 8px 0 4px;
+      border-left: 3px solid #34d399;
+      padding-left: 6px;
+    }
+    .guide-body h3:first-child { margin-top: 0; }
+    .guide-list {
+      padding-left: 16px;
+      margin-bottom: 8px;
+    }
+    .hint-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 4px 12px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .hint-grid b { color: #e2e8f0; }
+  </style>
+</head>
+<body>
+ <header>
+    <div id="discovery-counter">発見済み分子: 0 / 35</div>
+  </header>
+
+ <div id="status-panel">
+    <div id="drill-banner" style="display: none; margin-bottom: 4px; padding: 4px 8px; background: #0f172a; border-left: 3px solid #38bdf8; color: #e2e8f0; font-weight: bold;"></div>
+    <div>
+      <span id="status-badge">EMPTY</span>
+      <span id="status-message">元素ボタンを選び、2Dキャンバスをタップして原子を配置してください。</span>
+    </div>
+    <div id="molecule-detail">立体構造情報: 分子が完成するとここに結合角と解説が表示されます。</div>
+  </div>
+
+  <div id="workspace">
+    <!-- 左/下: 2D構造式組み立てパズル（L字左辺パレット ＋ スクロール専用キャンバス） -->
+    <div class="pane">
+      <div class="pane-header">
+        <span>[2D 構造式パズル] タップ配置 / 原子ドラッグ結線 / 空白ドラッグ移動</span>
+        <span id="atom-count-label">原子数: 0</span>
+      </div>
+      <div id="puzzle-stage">
+        <div id="element-palette">
+          <button class="el-btn active" data-el="C">C (4)</button>
+          <button class="el-btn" data-el="H">H (1)</button>
+          <button class="el-btn" data-el="O">O (2)</button>
+          <button class="el-btn" data-el="N">N (3)</button>
+        </div>
+        <div id="canvas-2d-viewport">
+          <canvas id="canvas-2d"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右/上: 3D立体構造ビューア -->
+    <div class="pane">
+      <div class="pane-header">
+        <span>[3D 立体モデルビューア] ドラッグで回転</span>
+       <div class="zoom-control">
+          <span>ZOOM</span>
+          <input type="range" id="zoom-slider" min="0.4" max="2.5" step="0.05" value="1.0">
+          <button id="btn-auto-rotate" style="padding: 2px 6px; font-size: 11px;">自動回転</button>
+          <button id="btn-reset-cam" style="padding: 2px 6px; font-size: 11px;">正面</button>
+        </div>
+      </div>
+      <canvas id="canvas-3d"></canvas>
+    </div>
+  </div>
+
+  <!-- L字下辺ツールバー: [修正系] -> [観察系] -> [演習系] の操作頻度順 -->
+  <div id="toolbar">
+    <div class="btn-group" id="group-edit">
+      <button id="btn-undo">1手戻す</button>
+      <button id="btn-erase-mode" class="danger">削除</button>
+      <button id="btn-clear">全消去</button>
+    </div>
+    <div class="btn-group" id="group-view">
+      <button id="btn-inspector-toggle">電子観察: ON</button>
+      <button id="btn-deepspec-toggle">もっと見せろ: OFF</button>
+      <button id="btn-tele3d-toggle">3Dテレメトリ: ON</button>
+    </div>
+  <div class="btn-group" id="group-drill">
+      <button id="btn-drill-mode">ドリル: OFF</button>
+      <button id="btn-drill-level">Lv.1</button>
+      <button id="btn-next-drill">次の問題</button>
+      <button id="btn-answer-toggle">答え: OFF</button>
+    </div>
+  </div>
+
+  <details id="guide-drawer" ontoggle="if (typeof resizeAllCanvases === 'function') resizeAllCanvases();">
+    <summary>
+      <span>[GUIDE] 操作マニュアル ＆ 全35分子コンプリートヒント集</span>
+      <span>タップで開閉</span>
+    </summary>
+    <div class="guide-body">
+      <h3>クイック操作マニュアル</h3>
+      <ul class="guide-list">
+        <li><b>Androidでの起動:</b> ファイルアプリから直接開かず、メニューの「アプリで開く」から Google Chrome 等のブラウザを指定してください。</li>
+        <li><b>原子の配置と結線:</b> 左端の元素を選んでパズル面の空白をタップすると配置されます。原子から別の原子へドラッグすると結合線が引かれ、線をタップすると単結合・二重結合・三重結合が切り替わります。</li>
+        <li><b>移動とスクロール:</b> 原子を空白へドラッグすると位置を移動でき、何も無い空白をドラッグするとパズル面全体をスクロールできます。</li>
+        <li><b>3D量子モデル:</b> すべての原子の手の数（原子価）が過不足なく繋がると右／上画面に3D電子雲が現れます（シアン：σ結合、パープル：π結合、アンバー：非共有電子対）。ドラッグで回転、2本指ピンチで拡大縮小します。</li>
+      </ul>
+
+      <h3>全35分子 コンプリートヒント集（分類別）</h3>
+      <div class="hint-grid">
+        <div><b>1. H2O（水）:</b> Oを中心にHを2本結合</div>
+        <div><b>2. CH4（メタン）:</b> Cを中心にHを4本結合</div>
+        <div><b>3. NH3（アンモニア）:</b> Nを中心にHを3本結合</div>
+        <div><b>4. CO2（二酸化炭素）:</b> O=C=O の二重結合2つ</div>
+        <div><b>5. CH2O（ホルムアルデヒド）:</b> CにOを二重結合、Hを2本</div>
+        <div><b>6. H2O2（過酸化水素）:</b> H-O-O-H の直鎖単結合</div>
+        <div><b>7. H2S（硫化水素）:</b> Sを中心にHを2本結合</div>
+        <div><b>8. PH3（ホスフィン）:</b> Pを中心にHを3本結合</div>
+        <div><b>9. CS2（二硫化炭素）:</b> S=C=S の二重結合2つ</div>
+        <div><b>10. HF（フッ化水素）:</b> H-F の二原子分子</div>
+        <div><b>11. HCl（塩化水素）:</b> H-Cl の二原子分子</div>
+        <div><b>12. HBr（臭化水素）:</b> H-Br の二原子分子</div>
+        <div><b>13. C2H6（エタン）:</b> C-C単結合にHを6本</div>
+        <div><b>14. C2H4（エチレン）:</b> C=C二重結合にHを4本</div>
+        <div><b>15. C2H2（アセチレン）:</b> C三重結合CにHを2本</div>
+        <div><b>16. C3H6（プロペン）:</b> 炭素3つ鎖の中に二重結合1つ</div>
+        <div><b>17. C3H6（シクロプロパン）:</b> 炭素3つを三角形の環に結線</div>
+        <div><b>18. C4H10（ノルマルブタン）:</b> 炭素4つを一直線に連結</div>
+        <div><b>19. C4H10（イソブタン）:</b> 中央のCに3つのCが枝分かれ</div>
+        <div><b>20. CH3OH（メタノール）:</b> CにH3本と -O-H を結合</div>
+        <div><b>21. C2H5OH（エタノール）:</b> C-C鎖の端に -O-H を結合</div>
+        <div><b>22. C2H6O（ジメチルエーテル）:</b> C-O-C の中央にOを挟む</div>
+        <div><b>23. HCOOH（ギ酸）:</b> H-C(=O)-O-H の構造</div>
+        <div><b>24. CH3COOH（酢酸）:</b> CH3-C(=O)-O-H の構造</div>
+        <div><b>25. C3H6O（アセトン）:</b> 中央のCに=Oと左右2つのCH3</div>
+        <div><b>26. CF4（四フッ化炭素）:</b> Cを中心にFを4本結合</div>
+        <div><b>27. CH3Cl（クロロメタン）:</b> CにHを3本とClを1本</div>
+        <div><b>28. CH2Cl2（ジクロロメタン）:</b> CにHを2本とClを2本</div>
+        <div><b>29. C2H5F（フルオロエタン）:</b> エタンのH1つをFに置換</div>
+        <div><b>30. C2H5Br（ブロモエタン）:</b> エタンのH1つをBrに置換</div>
+        <div><b>31. PCl3（三塩化リン）:</b> Pを中心にClを3本結合</div>
+        <div><b>32. CH5N（メチルアミン）:</b> CH3-NH2 の単結合連結</div>
+        <div><b>33. CH4N2O（尿素）:</b> C=O の炭素に左右2つの -NH2</div>
+        <div><b>34. C2H5NO2（グリシン）:</b> H2N-CH2-COOH の最小アミノ酸</div>
+        <div><b>35. C2H6S（ジメチルスルフィド）:</b> C-S-C の中央にSを挟む</div>
+      </div>
+    </div>
+  </details>
+
+  <script>
+    /* parioetlaforet@Gmail.com  M.morimoto   11_18_2026  */
+// ======================================================================
+// 【第1章：基盤環境・幾何座標・システム設定 (Environment & Layout)】
+// 2D作業キャンバス寸法、グリッド吸着ピッチ、3Dビューア基本定数
+// ======================================================================
+const CHEM_ENV = {
+  GRID_PITCH: 32,
+  WORKSPACE_COLS: 24,
+  WORKSPACE_ROWS: 18,
+  DRAG_THRESHOLD: 10,
+  MAX_ATOMS: 32,
+  HIT_RADIUS_ATOM: 28,
+  HIT_DIST_BOND: 16,
+  BASE_DISTANCE_3D: 600,
+  NEAR_PLANE_3D: 10,
+ ORBIT_RADIUS_3D: 5.5,
+  ROTATE_SENSITIVITY: 0.007,
+  AUTO_ROTATE_SPEED: 0.008,
+  DEFAULT_ROT_X: 0.35,
+  DEFAULT_ROT_Y: 0.55
+};
+
+
+
+// ======================================================================
+// 【第2章：元素マスタ・レジストリ ＆ 実在分子辞書 (Elements & Molecule DB)】
+// 元素データシート(原子価[手の数]・CPK配色・原子半径)
+// および実在分子データベース(パターンB: 実在分子のみ / 3D立体座標付き)
+// ======================================================================
+const ELEMENTS = {
+  H: { symbol: "H", name: "水素", valence: 1, color: "#f8fafc", strokeColor: "#94a3b8", textColor: "#0f172a", radius2D: 16, radius3D: 0.28 },
+  C: { symbol: "C", name: "炭素", valence: 4, color: "#334155", strokeColor: "#94a3b8", textColor: "#f8fafc", radius2D: 22, radius3D: 0.48 },
+  N: { symbol: "N", name: "窒素", valence: 3, color: "#2563eb", strokeColor: "#93c5fd", textColor: "#f8fafc", radius2D: 21, radius3D: 0.44 },
+  O: { symbol: "O", name: "酸素", valence: 2, color: "#dc2626", strokeColor: "#fca5a5", textColor: "#f8fafc", radius2D: 20, radius3D: 0.42 },
+  F: { symbol: "F", name: "フッ素", valence: 1, color: "#22c55e", strokeColor: "#86efac", textColor: "#0f172a", radius2D: 18, radius3D: 0.36 },
+  P: { symbol: "P", name: "リン", valence: 3, color: "#f97316", strokeColor: "#fdba74", textColor: "#f8fafc", radius2D: 24, radius3D: 0.54 },
+  S: { symbol: "S", name: "硫黄", valence: 2, color: "#eab308", strokeColor: "#fef08a", textColor: "#0f172a", radius2D: 23, radius3D: 0.52 },
+  Cl: { symbol: "Cl", name: "塩素", valence: 1, color: "#10b981", strokeColor: "#6ee7b7", textColor: "#0f172a", radius2D: 21, radius3D: 0.46 },
+  Br: { symbol: "Br", name: "臭素", valence: 1, color: "#991b1b", strokeColor: "#fca5a5", textColor: "#f8fafc", radius2D: 23, radius3D: 0.52 }
+};
+
+
+const MOLECULE_DB = [
+  {
+    id: "H2O",
+    formula: "H2O",
+    name: "水 (Water)",
+    geometry: "折れ線形 (結合角 104.5度)",
+    signature: "H(O-1)|H(O-1)|O(H-1,H-1)",
+    desc: "生命維持の基盤となる万能溶媒だ。酸素の非共有電子対が結合を104.5度に折り曲げたおかげで強い極性が生まれ、氷が水に浮くという稀有な物理特性を獲得している。",
+    model3D: {
+      atoms: [
+        { type: "O", x: 0.00, y: -0.20, z: 0.00 },
+        { type: "H", x: 0.76, y: 0.39, z: 0.00 },
+        { type: "H", x: -0.76, y: 0.39, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "CH4",
+    formula: "CH4",
+    name: "メタン (Methane)",
+    geometry: "正四面体構造 (結合角 109.5度)",
+    signature: "C(H-1,H-1,H-1,H-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)",
+    desc: "都市ガスの主成分であり、最もシンプルな炭化水素だ。完全な正四面体の対称性ゆえ極性はゼロだが、実は二酸化炭素の約25倍もの温室効果を持つ一面がある。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "H", x: 0.63, y: 0.63, z: 0.63 },
+        { type: "H", x: -0.63, y: -0.63, z: 0.63 },
+        { type: "H", x: -0.63, y: 0.63, z: -0.63 },
+        { type: "H", x: 0.63, y: -0.63, z: -0.63 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "NH3",
+    formula: "NH3",
+    name: "アンモニア (Ammonia)",
+    geometry: "三角錐形 (結合角 107.0度)",
+    signature: "H(N-1)|H(N-1)|H(N-1)|N(H-1,H-1,H-1)",
+    desc: "化学肥料や医薬品の出発点となる極めて重要な窒素源だ。20世紀初頭にこの分子を空気と水素から大量合成する技術が確立され、人類の食糧生産は劇的に拡大した。",
+    model3D: {
+      atoms: [
+        { type: "N", x: 0.00, y: -0.25, z: 0.00 },
+        { type: "H", x: 0.94, y: 0.15, z: 0.00 },
+        { type: "H", x: -0.47, y: 0.15, z: 0.81 },
+        { type: "H", x: -0.47, y: 0.15, z: -0.81 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "CO2",
+    formula: "CO2",
+    name: "二酸化炭素 (Carbon Dioxide)",
+    geometry: "直線形 (結合角 180.0度)",
+    signature: "C(O-2,O-2)|O(C-2)|O(C-2)",
+    desc: "植物の光合成に不可欠な炭素の循環媒体だ。個々のC=O結合は強い極性を持つが、180度の直線配置が双極子を完全に打ち消すため、分子全体では無極性となる。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "O", x: -1.16, y: 0.00, z: 0.00 },
+        { type: "O", x: 1.16, y: 0.00, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 2 },
+        { from: 0, to: 2, order: 2 }
+      ]
+    }
+  },
+  {
+    id: "CH2O",
+    formula: "CH2O",
+    name: "ホルムアルデヒド (Formaldehyde)",
+    geometry: "平面三角形構造 (結合角 120度)",
+    signature: "C(H-1,H-1,O-2)|H(C-1)|H(C-1)|O(C-2)",
+    desc: "樹脂や接着剤の原料として産業界で広く使われる基礎化合物だ。反応性が高く生体標本を固定する防腐剤としても知られるが、実は遠い星間空間でも観測されている。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.10, z: 0.00 },
+        { type: "O", x: 0.00, y: -1.11, z: 0.00 },
+        { type: "H", x: -0.94, y: 0.69, z: 0.00 },
+        { type: "H", x: 0.94, y: 0.69, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 2 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "C2H6",
+    formula: "C2H6",
+    name: "エタン (Ethylene)",
+    geometry: "二重四面体・ねじれ形配置",
+    signature: "C(C-1,H-1,H-1,H-1)|C(C-1,H-1,H-1,H-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)",
+    desc: "天然ガスに含まれる第2の炭化水素で、プラスチック原料であるエチレンの供給源だ。中央のC-C単結合は軸回転でき、電子雲の反発を避けるためプロペラのようにねじれて安定する。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -0.77, y: 0.00, z: 0.00 },
+        { type: "C", x: 0.77, y: 0.00, z: 0.00 },
+        { type: "H", x: -1.16, y: -1.02, z: 0.00 },
+        { type: "H", x: -1.16, y: 0.51, z: 0.88 },
+        { type: "H", x: -1.16, y: 0.51, z: -0.88 },
+        { type: "H", x: 1.16, y: 1.02, z: 0.00 },
+        { type: "H", x: 1.16, y: -0.51, z: -0.88 },
+        { type: "H", x: 1.16, y: -0.51, z: 0.88 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 1 },
+        { from: 1, to: 6, order: 1 },
+        { from: 1, to: 7, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "C2H4",
+    formula: "C2H4",
+    name: "エチレン (Ethylene)",
+    geometry: "同一平面構造 (結合角 120度)",
+    signature: "C(C-2,H-1,H-1)|C(C-2,H-1,H-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)",
+    desc: "ポリエチレンなど現代のプラスチック製品の出発点となる有機化学の主役だ。植物自身が分泌する成熟ホルモンでもあり、青果物の追熟を促す働きを持つ。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -0.67, y: 0.00, z: 0.00 },
+        { type: "C", x: 0.67, y: 0.00, z: 0.00 },
+        { type: "H", x: -1.23, y: -0.93, z: 0.00 },
+        { type: "H", x: -1.23, y: 0.93, z: 0.00 },
+        { type: "H", x: 1.23, y: -0.93, z: 0.00 },
+        { type: "H", x: 1.23, y: 0.93, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 2 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 1, to: 4, order: 1 },
+        { from: 1, to: 5, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "C2H2",
+    formula: "C2H2",
+    name: "アセチレン (Acetylene)",
+    geometry: "直線形三重結合構造 (結合角 180度)",
+    signature: "C(C-3,H-1)|C(C-3,H-1)|H(C-1)|H(C-1)",
+    desc: "酸素と混ぜて燃焼させると3000度を超える高温炎を生むため、金属の溶接や切断に欠かせない。高密度な三重結合の電子雲には膨大な化学エネルギーが蓄えられている。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -0.60, y: 0.00, z: 0.00 },
+        { type: "C", x: 0.60, y: 0.00, z: 0.00 },
+        { type: "H", x: -1.66, y: 0.00, z: 0.00 },
+        { type: "H", x: 1.66, y: 0.00, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 3 },
+        { from: 0, to: 2, order: 1 },
+        { from: 1, to: 3, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "C2H5OH",
+    formula: "C2H5OH",
+    name: "エタノール (Ethanol)",
+    geometry: "四面体鎖 ＋ ヒドロキシ基(-OH)",
+    signature: "C(C-1,H-1,H-1,H-1)|C(C-1,H-1,H-1,O-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(O-1)|O(C-1,H-1)",
+    desc: "消毒剤、溶媒、燃料、そして酒類の成分として古来より人類と密接に関わってきた分子だ。油になじむ炭素鎖と水になじむ-OH基を併せ持つため、水と油の双方に溶ける。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -1.20, y: 0.25, z: 0.00 },
+        { type: "C", x: 0.25, y: -0.22, z: 0.00 },
+        { type: "O", x: 1.15, y: 0.88, z: 0.00 },
+        { type: "H", x: -1.85, y: -0.63, z: 0.00 },
+        { type: "H", x: -1.40, y: 0.85, z: 0.89 },
+        { type: "H", x: -1.40, y: 0.85, z: -0.89 },
+        { type: "H", x: 0.43, y: -0.83, z: 0.89 },
+        { type: "H", x: 0.43, y: -0.83, z: -0.89 },
+        { type: "H", x: 2.04, y: 0.52, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 1, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 0, to: 5, order: 1 },
+        { from: 1, to: 6, order: 1 },
+        { from: 1, to: 7, order: 1 },
+        { from: 2, to: 8, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "N_BUTANE",
+    formula: "C4H10",
+    name: "ノルマルブタン (n-Butane)",
+    geometry: "直鎖ジグザグ炭素骨格 (構造異性体A)",
+    signature: "C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,H-1)|C(C-1,H-1,H-1,H-1)|C(C-1,H-1,H-1,H-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)",
+    desc: "カセットコンロやライターの燃料として身近な炭化水素だ。わずかな加圧で簡単に液化するため携帯性に優れ、表面積が広い直鎖構造ゆえに枝分かれしたイソブタンより沸点が高い。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -1.90, y: 0.35, z: 0.00 },
+        { type: "C", x: -0.63, y: -0.35, z: 0.00 },
+        { type: "C", x: 0.63, y: 0.35, z: 0.00 },
+        { type: "C", x: 1.90, y: -0.35, z: 0.00 },
+        { type: "H", x: -2.78, y: -0.29, z: 0.00 },
+        { type: "H", x: -1.95, y: 0.98, z: 0.89 },
+        { type: "H", x: -1.95, y: 0.98, z: -0.89 },
+        { type: "H", x: -0.63, y: -0.98, z: 0.89 },
+        { type: "H", x: -0.63, y: -0.98, z: -0.89 },
+        { type: "H", x: 0.63, y: 0.98, z: 0.89 },
+        { type: "H", x: 0.63, y: 0.98, z: -0.89 },
+        { type: "H", x: 2.78, y: 0.29, z: 0.00 },
+        { type: "H", x: 1.95, y: -0.98, z: 0.89 },
+        { type: "H", x: 1.95, y: -0.98, z: -0.89 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 }, { from: 1, to: 2, order: 1 }, { from: 2, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 }, { from: 0, to: 5, order: 1 }, { from: 0, to: 6, order: 1 },
+        { from: 1, to: 7, order: 1 }, { from: 1, to: 8, order: 1 },
+        { from: 2, to: 9, order: 1 }, { from: 2, to: 10, order: 1 },
+        { from: 3, to: 11, order: 1 }, { from: 3, to: 12, order: 1 }, { from: 3, to: 13, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "ISOBUTANE",
+    formula: "C4H10",
+    name: "イソブタン / 2-メチルプロパン (Isobutane)",
+    geometry: "枝分かれ四面体骨格 (構造異性体B)",
+    signature: "C(C-1,C-1,C-1,H-1)|C(C-1,H-1,H-1,H-1)|C(C-1,H-1,H-1,H-1)|C(C-1,H-1,H-1,H-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)",
+    desc: "冷蔵庫の冷媒や寒冷地向けアウトドア燃料に重宝される構造異性体だ。球状にコンパクトにまとまっているため分子同士が絡みにくく、氷点下でも気化しやすい性質を持つ。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: -0.25, z: 0.00 },
+        { type: "C", x: 1.42, y: 0.22, z: 0.00 },
+        { type: "C", x: -0.71, y: 0.22, z: 1.23 },
+        { type: "C", x: -0.71, y: 0.22, z: -1.23 },
+        { type: "H", x: 0.00, y: -1.34, z: 0.00 },
+        { type: "H", x: 2.12, y: -0.61, z: 0.00 },
+        { type: "H", x: 1.61, y: 0.83, z: 0.89 },
+        { type: "H", x: 1.61, y: 0.83, z: -0.89 },
+        { type: "H", x: -1.78, y: -0.01, z: 1.15 },
+        { type: "H", x: -0.58, y: 1.30, z: 1.35 },
+        { type: "H", x: -0.32, y: -0.27, z: 2.12 },
+        { type: "H", x: -1.78, y: -0.01, z: -1.15 },
+        { type: "H", x: -0.58, y: 1.30, z: -1.35 },
+        { type: "H", x: -0.32, y: -0.27, z: -2.12 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 }, { from: 0, to: 2, order: 1 }, { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 1 }, { from: 1, to: 6, order: 1 }, { from: 1, to: 7, order: 1 },
+        { from: 2, to: 8, order: 1 }, { from: 2, to: 9, order: 1 }, { from: 2, to: 10, order: 1 },
+        { from: 3, to: 11, order: 1 }, { from: 3, to: 12, order: 1 }, { from: 3, to: 13, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "CH3OCH3",
+    formula: "C2H6O",
+    name: "ジメチルエーテル (Dimethyl Ether)",
+    geometry: "折れ線形エーテル結合 C-O-C (エタノールの構造異性体)",
+    signature: "C(H-1,H-1,H-1,O-1)|C(H-1,H-1,H-1,O-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|O(C-1,C-1)",
+    desc: "黒煙を出さずにクリーンに燃焼する次世代ディーゼル代替燃料として注目されている。エタノールと全く同じ原子数でありながら、水素結合を作らないため常温では気体として振る舞う。",
+    model3D: {
+      atoms: [
+        { type: "O", x: 0.00, y: -0.35, z: 0.00 },
+        { type: "C", x: -1.16, y: 0.35, z: 0.00 },
+        { type: "C", x: 1.16, y: 0.35, z: 0.00 },
+        { type: "H", x: -2.04, y: -0.30, z: 0.00 },
+        { type: "H", x: -1.18, y: 0.99, z: 0.89 },
+        { type: "H", x: -1.18, y: 0.99, z: -0.89 },
+        { type: "H", x: 2.04, y: -0.30, z: 0.00 },
+        { type: "H", x: 1.18, y: 0.99, z: 0.89 },
+        { type: "H", x: 1.18, y: 0.99, z: -0.89 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 }, { from: 0, to: 2, order: 1 },
+        { from: 1, to: 3, order: 1 }, { from: 1, to: 4, order: 1 }, { from: 1, to: 5, order: 1 },
+        { from: 2, to: 6, order: 1 }, { from: 2, to: 7, order: 1 }, { from: 2, to: 8, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "C3H6_PROPENE",
+    formula: "C3H6",
+    name: "プロペン (Propene)",
+    geometry: "二重結合を含む鎖状不飽和炭化水素 (構造異性体A)",
+    signature: "C(C-1,C-2,H-1)|C(C-1,H-1,H-1,H-1)|C(C-2,H-1,H-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)",
+    desc: "自動車部品や食品容器に使われるポリプロピレンの原料だ。1つの二重結合を持つだけで反応性が飛躍的に高まり、分子同士が連鎖的に繋がって強靭な高分子へと姿を変える。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -1.25, y: -0.25, z: 0.00 },
+        { type: "C", x: 0.00, y: 0.35, z: 0.00 },
+        { type: "C", x: 1.28, y: -0.35, z: 0.00 },
+        { type: "H", x: -2.15, y: 0.35, z: 0.00 },
+        { type: "H", x: -1.35, y: -1.33, z: 0.00 },
+        { type: "H", x: 0.05, y: 1.43, z: 0.00 },
+        { type: "H", x: 2.15, y: 0.30, z: 0.00 },
+        { type: "H", x: 1.33, y: -0.99, z: 0.89 },
+        { type: "H", x: 1.33, y: -0.99, z: -0.89 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 2 }, { from: 1, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 }, { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 1 },
+        { from: 2, to: 6, order: 1 }, { from: 2, to: 7, order: 1 }, { from: 2, to: 8, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "C3H6_CYCLOPROPANE",
+    formula: "C3H6",
+    name: "シクロプロパン (Cyclopropane)",
+    geometry: "正三角形の炭素三員環構造 (構造異性体B)",
+    signature: "C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,H-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)",
+    desc: "かつて吸入麻酔薬として医療現場で使われた環状分子だ。本来の結合角109.5度を無理やり60度の正三角形に押し込めているため、結合がバナナのように外へ湾曲し大きな歪みエネルギーを抱えている。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: -0.87, z: 0.00 },
+        { type: "C", x: -0.76, y: 0.44, z: 0.00 },
+        { type: "C", x: 0.76, y: 0.44, z: 0.00 },
+        { type: "H", x: 0.00, y: -1.45, z: 0.91 },
+        { type: "H", x: 0.00, y: -1.45, z: -0.91 },
+        { type: "H", x: -1.26, y: 0.73, z: 0.91 },
+        { type: "H", x: -1.26, y: 0.73, z: -0.91 },
+        { type: "H", x: 1.26, y: 0.73, z: 0.91 },
+        { type: "H", x: 1.26, y: 0.73, z: -0.91 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 }, { from: 1, to: 2, order: 1 }, { from: 2, to: 0, order: 1 },
+        { from: 0, to: 3, order: 1 }, { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 1 }, { from: 1, to: 6, order: 1 },
+        { from: 2, to: 7, order: 1 }, { from: 2, to: 8, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "HF",
+    formula: "HF",
+    name: "フッ化水素 (Hydrogen Fluoride)",
+    geometry: "直線形二原子分子 (極限極性結合)",
+    signature: "F(H-1)|H(F-1)",
+    desc: "半導体製造の微細エッチングやフッ素樹脂の合成に不可欠な工業物質だ。全元素で最大の電気陰性度3.98を持つフッ素が電子を独占するうえ、ガラスすら溶かす特異な反応性を示す。",
+    model3D: {
+      atoms: [
+        { type: "F", x: -0.46, y: 0.00, z: 0.00 },
+        { type: "H", x: 0.46, y: 0.00, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "HCL",
+    formula: "HCl",
+    name: "塩化水素 (Hydrogen Chloride)",
+    geometry: "直線形二原子分子 (強極性共有結合)",
+    signature: "Cl(H-1)|H(Cl-1)",
+    desc: "水に溶けて塩酸となり、金属精錬から医薬品合成まであらゆる化学工業を支える基礎酸だ。実は我々の胃液にも含まれており、食物の消化と殺菌を担う重要な生体防御因子でもある。",
+    model3D: {
+      atoms: [
+        { type: "Cl", x: -0.63, y: 0.00, z: 0.00 },
+        { type: "H", x: 0.64, y: 0.00, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "HBR",
+    formula: "HBr",
+    name: "臭化水素 (Hydrogen Bromide)",
+    geometry: "直線形二原子分子 (N殻ハロゲン結合)",
+    signature: "Br(H-1)|H(Br-1)",
+    desc: "有機合成において炭素鎖へ臭素を導入する際の重要な試薬であり、難燃剤や医薬中間体の製造に活躍する。N殻まで広がる巨大な臭素の電子雲は、外部の電場に対して柔軟に変形しやすい。",
+    model3D: {
+      atoms: [
+        { type: "Br", x: -0.70, y: 0.00, z: 0.00 },
+        { type: "H", x: 0.71, y: 0.00, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "H2S",
+    formula: "H2S",
+    name: "硫化水素 (Hydrogen Sulfide)",
+    geometry: "折れ線形 (結合角 92.1度)",
+    signature: "H(S-1)|H(S-1)|S(H-1,H-1)",
+    desc: "火山ガスや温泉地特有の腐卵臭の正体であり、金属イオンを沈殿分離する分析化学の定番試薬だ。近年の研究では、人間の体内でも微量に生成されて血圧調節などを担うガス状伝達物質だと判明している。",
+    model3D: {
+      atoms: [
+        { type: "S", x: 0.00, y: -0.22, z: 0.00 },
+        { type: "H", x: 0.96, y: 0.45, z: 0.00 },
+        { type: "H", x: -0.96, y: 0.45, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "PH3",
+    formula: "PH3",
+    name: "ホスフィン (Phosphine)",
+    geometry: "三角錐形 (結合角 93.5度)",
+    signature: "H(P-1)|H(P-1)|H(P-1)|P(H-1,H-1,H-1)",
+    desc: "半導体のシリコン結晶にリンを注入するドーピング工程で不可欠な電子材料ガスだ。地球上では嫌気性微生物や工業プロセスに由来するため、太陽系外惑星における生命存在の指標分子としても注目されている。",
+    model3D: {
+      atoms: [
+        { type: "P", x: 0.00, y: -0.28, z: 0.00 },
+        { type: "H", x: 1.18, y: 0.25, z: 0.00 },
+        { type: "H", x: -0.59, y: 0.25, z: 1.02 },
+        { type: "H", x: -0.59, y: 0.25, z: -1.02 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "CF4",
+    formula: "CF4",
+    name: "四フッ化炭素 (Carbon Tetrafluoride)",
+    geometry: "正四面体構造 (対称無極性分子)",
+    signature: "C(F-1,F-1,F-1,F-1)|F(C-1)|F(C-1)|F(C-1)|F(C-1)",
+    desc: "極めて強固なC-F結合で鎧われた化学的に不活性なガスで、半導体ウエハのプラズマ洗浄に欠かせない。あまりに安定すぎるため大気中での寿命は約5万年に達し、地球上で最も分解されにくい分子の一つだ。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "F", x: 0.76, y: 0.76, z: 0.76 },
+        { type: "F", x: -0.76, y: -0.76, z: 0.76 },
+        { type: "F", x: -0.76, y: 0.76, z: -0.76 },
+        { type: "F", x: 0.76, y: -0.76, z: -0.76 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "CH3CL",
+    formula: "CH3Cl",
+    name: "クロロメタン (Chloromethane)",
+    geometry: "歪んだ四面体構造 (非対称極性分子)",
+    signature: "C(Cl-1,H-1,H-1,H-1)|Cl(C-1)|H(C-1)|H(C-1)|H(C-1)",
+    desc: "シリコーン樹脂や医薬品のメチル化剤として重宝される工業原料だ。かつては冷蔵庫の冷媒として広く使われていたほか、海洋の藻類や森林火災からも自然に放出されている。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.20, z: 0.00 },
+        { type: "Cl", x: 0.00, y: -1.58, z: 0.00 },
+        { type: "H", x: 1.03, y: 0.56, z: 0.00 },
+        { type: "H", x: -0.51, y: 0.56, z: 0.89 },
+        { type: "H", x: -0.51, y: 0.56, z: -0.89 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "PCL3",
+    formula: "PCl3",
+    name: "三塩化リン (Phosphorus Trichloride)",
+    geometry: "三角錐形 (結合角 100.3度)",
+    signature: "Cl(P-1)|Cl(P-1)|Cl(P-1)|P(Cl-1,Cl-1,Cl-1)",
+    desc: "除草剤、難燃剤、可塑剤など多様なリン化合物を生み出す化学工業の要だ。頂点に非共有電子対を持つ三角錐構造をしており、水と出会うと激しく反応して亜リン酸と塩化水素へ分解する。",
+    model3D: {
+      atoms: [
+        { type: "P", x: 0.00, y: -0.35, z: 0.00 },
+        { type: "Cl", x: 1.62, y: 0.30, z: 0.00 },
+        { type: "Cl", x: -0.81, y: 0.30, z: 1.40 },
+        { type: "Cl", x: -0.81, y: 0.30, z: -1.40 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "CH3OH",
+    formula: "CH3OH",
+    name: "メタノール (Methanol)",
+    geometry: "四面体メチル基 ＋ ヒドロキシ基(-OH)",
+    signature: "C(H-1,H-1,H-1,O-1)|H(C-1)|H(C-1)|H(C-1)|H(O-1)|O(C-1,H-1)",
+    desc: "ホルムアルデヒドや酢酸の原料であり、次世代のクリーン燃料や燃料電池の水素キャリアとしても期待されている。木材の乾留から得られた歴史から「木精」とも呼ばれ、エタノールと異なり強い視覚毒性を有する。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -0.71, y: 0.05, z: 0.00 },
+        { type: "O", x: 0.68, y: -0.22, z: 0.00 },
+        { type: "H", x: -1.12, y: -0.96, z: 0.00 },
+        { type: "H", x: -1.04, y: 0.58, z: 0.89 },
+        { type: "H", x: -1.04, y: 0.58, z: -0.89 },
+        { type: "H", x: 1.14, y: 0.63, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "HCOOH",
+    formula: "HCOOH",
+    name: "ギ酸 (Formic Acid)",
+    geometry: "平面カルボキシ基 (-COOH)",
+    signature: "C(H-1,O-1,O-2)|H(C-1)|H(O-1)|O(C-1,H-1)|O(C-2)",
+    desc: "皮革のなめしや繊維の染色、さらには次世代の水素貯蔵媒体として研究される最小のカルボン酸だ。名前の由来はアリの毒腺から最初に単離されたことにあり、ハチやイラクサの防衛物質としても使われている。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.08, z: 0.00 },
+        { type: "O", x: -1.08, y: -0.46, z: 0.00 },
+        { type: "O", x: 1.12, y: -0.62, z: 0.00 },
+        { type: "H", x: 0.08, y: 1.17, z: 0.00 },
+        { type: "H", x: 1.88, y: -0.02, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 2 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 2, to: 4, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "CH3COOH",
+    formula: "CH3COOH",
+    name: "酢酸 (Acetic Acid)",
+    geometry: "四面体メチル基 ＋ 平面カルボキシ基",
+    signature: "C(C-1,H-1,H-1,H-1)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(O-1)|O(C-1,H-1)|O(C-2)",
+    desc: "食酢の酸味の本体であり、繊維やペットボトル原料など工業的にも不可欠なカルボン酸だ。純度100%に近いものは16.7度で氷のように結晶化するため、古来より「氷酢酸」と呼ばれて区別されてきた。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -1.18, y: 0.12, z: 0.00 },
+        { type: "C", x: 0.28, y: -0.15, z: 0.00 },
+        { type: "O", x: 0.78, y: -1.26, z: 0.00 },
+        { type: "O", x: 1.05, y: 0.96, z: 0.00 },
+        { type: "H", x: -1.75, y: -0.81, z: 0.00 },
+        { type: "H", x: -1.45, y: 0.70, z: 0.89 },
+        { type: "H", x: -1.45, y: 0.70, z: -0.89 },
+        { type: "H", x: 1.98, y: 0.68, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 1, to: 2, order: 2 },
+        { from: 1, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 0, to: 5, order: 1 },
+        { from: 0, to: 6, order: 1 },
+        { from: 3, to: 7, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "CH3COCH3",
+    formula: "C3H6O",
+    name: "アセトン (Acetone)",
+    geometry: "平面ケトン骨格 (C-CO-C)",
+    signature: "C(C-1,C-1,O-2)|C(C-1,H-1,H-1,H-1)|C(C-1,H-1,H-1,H-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|O(C-2)",
+    desc: "実験器具の洗浄から除光液、樹脂製造まで幅広く活躍する万能有機溶媒だ。中央のC=O基の強い極性と両端のメチル基の親油性により、水とも油とも自在に混ざり合う稀有な溶解力を持つ。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: -0.15, z: 0.00 },
+        { type: "O", x: 0.00, y: -1.37, z: 0.00 },
+        { type: "C", x: -1.28, y: 0.64, z: 0.00 },
+        { type: "C", x: 1.28, y: 0.64, z: 0.00 },
+        { type: "H", x: -2.15, y: -0.02, z: 0.00 },
+        { type: "H", x: -1.32, y: 1.28, z: 0.89 },
+        { type: "H", x: -1.32, y: 1.28, z: -0.89 },
+        { type: "H", x: 2.15, y: -0.02, z: 0.00 },
+        { type: "H", x: 1.32, y: 1.28, z: 0.89 },
+        { type: "H", x: 1.32, y: 1.28, z: -0.89 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 2 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 2, to: 4, order: 1 }, { from: 2, to: 5, order: 1 }, { from: 2, to: 6, order: 1 },
+        { from: 3, to: 7, order: 1 }, { from: 3, to: 8, order: 1 }, { from: 3, to: 9, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "UREA",
+    formula: "CH4N2O",
+    name: "尿素 (Urea)",
+    geometry: "平面ジアミド構造 (CO(NH2)2)",
+    signature: "C(N-1,N-1,O-2)|H(N-1)|H(N-1)|H(N-1)|H(N-1)|N(C-1,H-1,H-1)|N(C-1,H-1,H-1)|O(C-2)",
+    desc: "窒素肥料や保湿クリーム、さらにはディーゼル車の排ガス浄化剤として現代社会を支える分子だ。1828年に無機物から初めて人工合成されたことで「有機物は生命力なしには作れない」という当時の常識を打ち砕いた。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: -0.10, z: 0.00 },
+        { type: "O", x: 0.00, y: -1.32, z: 0.00 },
+        { type: "N", x: -1.18, y: 0.62, z: 0.00 },
+        { type: "N", x: 1.18, y: 0.62, z: 0.00 },
+        { type: "H", x: -2.04, y: 0.10, z: 0.00 },
+        { type: "H", x: -1.18, y: 1.63, z: 0.00 },
+        { type: "H", x: 2.04, y: 0.10, z: 0.00 },
+        { type: "H", x: 1.18, y: 1.63, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 2 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 2, to: 4, order: 1 }, { from: 2, to: 5, order: 1 },
+        { from: 3, to: 6, order: 1 }, { from: 3, to: 7, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "GLYCINE",
+    formula: "C2H5NO2",
+    name: "グリシン (Glycine)",
+    geometry: "最も単純なアミノ酸 (H2N-CH2-COOH)",
+    signature: "C(C-1,H-1,H-1,N-1)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(O-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-2)",
+    desc: "コラーゲンの約3分の1を占め、睡眠の質を高める機能性成分としても知られる最小のアミノ酸だ。20種の標準アミノ酸の中で唯一光学異性体を持たず、隕石や彗星の塵からも発見されている宇宙最古級の生命分子である。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -0.45, y: 0.15, z: 0.00 },
+        { type: "C", x: 0.98, y: -0.25, z: 0.00 },
+        { type: "N", x: -1.35, y: -0.98, z: 0.00 },
+        { type: "O", x: 1.38, y: -1.40, z: 0.00 },
+        { type: "O", x: 1.82, y: 0.80, z: 0.00 },
+        { type: "H", x: -0.62, y: 0.78, z: 0.89 },
+        { type: "H", x: -0.62, y: 0.78, z: -0.89 },
+        { type: "H", x: -2.30, y: -0.65, z: 0.00 },
+        { type: "H", x: -1.18, y: -1.55, z: 0.82 },
+        { type: "H", x: 2.72, y: 0.45, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 1, to: 3, order: 2 },
+        { from: 1, to: 4, order: 1 },
+        { from: 0, to: 5, order: 1 }, { from: 0, to: 6, order: 1 },
+        { from: 2, to: 7, order: 1 }, { from: 2, to: 8, order: 1 },
+        { from: 4, to: 9, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "CH3NH2",
+    formula: "CH5N",
+    name: "メチルアミン (Methylamine)",
+    geometry: "四面体メチル基 ＋ 三角錐アミノ基",
+    signature: "C(H-1,H-1,H-1,N-1)|H(C-1)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|N(C-1,H-1,H-1)",
+    desc: "医薬品や農薬、界面活性剤の合成に欠かせない最も単純な第一級アミンだ。電子供与性のメチル基が窒素の非共有電子対を押し出すため、アンモニアよりもさらに強い塩基性を発揮する。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -0.72, y: 0.05, z: 0.00 },
+        { type: "N", x: 0.72, y: -0.15, z: 0.00 },
+        { type: "H", x: -1.15, y: -0.95, z: 0.00 },
+        { type: "H", x: -1.05, y: 0.58, z: 0.89 },
+        { type: "H", x: -1.05, y: 0.58, z: -0.89 },
+        { type: "H", x: 1.15, y: 0.35, z: 0.82 },
+        { type: "H", x: 1.15, y: 0.35, z: -0.82 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 }, { from: 0, to: 3, order: 1 }, { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 1 }, { from: 1, to: 6, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "H2O2",
+    formula: "H2O2",
+    name: "過酸化水素 (Hydrogen Peroxide)",
+    geometry: "開いた本のようなねじれ二面角構造 (約111度)",
+    signature: "H(O-1)|H(O-1)|O(H-1,O-1)|O(H-1,O-1)",
+    desc: "傷口の消毒や漂白剤として身近であり、分解後に水と酸素しか残さないクリーンな酸化剤だ。中央のO-O結合は146kJ/molと非常に弱く、ロケットの推進剤としても利用されるほどのエネルギーを秘めている。",
+    model3D: {
+      atoms: [
+        { type: "O", x: -0.73, y: 0.00, z: 0.00 },
+        { type: "O", x: 0.73, y: 0.00, z: 0.00 },
+        { type: "H", x: -0.98, y: 0.92, z: 0.15 },
+        { type: "H", x: 0.98, y: -0.35, z: -0.88 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 1, to: 3, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "CS2",
+    formula: "CS2",
+    name: "二硫化炭素 (Carbon Disulfide)",
+    geometry: "直線形二重結合構造 (結合角 180.0度)",
+    signature: "C(S-2,S-2)|S(C-2)|S(C-2)",
+    desc: "レーヨン繊維やセロファンの製造、さらに光学ガラスの屈折率測定用液体として重宝される無極性溶媒だ。硫黄やリン、ヨウ素といった単体元素を驚くほどよく溶かす特殊な溶解特性を備えている。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "S", x: -1.55, y: 0.00, z: 0.00 },
+        { type: "S", x: 1.55, y: 0.00, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 2 },
+        { from: 0, to: 2, order: 2 }
+      ]
+    }
+  },
+  {
+    id: "CH3SCH3",
+    formula: "C2H6S",
+    name: "ジメチルスルフィド (Dimethyl Sulfide)",
+    geometry: "折れ線形チオエーテル結合 C-S-C",
+    signature: "C(H-1,H-1,H-1,S-1)|C(H-1,H-1,H-1,S-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|S(C-1,C-1)",
+    desc: "海辺の「磯の香り」やトウモロコシの風味を構成する主要な揮発性硫黄化合物だ。海洋の植物プランクトンが大量に放出しており、大気中で酸化されて雲の核となることで地球の気候調節にも一役買っている。",
+    model3D: {
+      atoms: [
+        { type: "S", x: 0.00, y: -0.42, z: 0.00 },
+        { type: "C", x: -1.38, y: 0.48, z: 0.00 },
+        { type: "C", x: 1.38, y: 0.48, z: 0.00 },
+        { type: "H", x: -2.28, y: -0.14, z: 0.00 },
+        { type: "H", x: -1.38, y: 1.12, z: 0.89 },
+        { type: "H", x: -1.38, y: 1.12, z: -0.89 },
+        { type: "H", x: 2.28, y: -0.14, z: 0.00 },
+        { type: "H", x: 1.38, y: 1.12, z: 0.89 },
+        { type: "H", x: 1.38, y: 1.12, z: -0.89 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 }, { from: 0, to: 2, order: 1 },
+        { from: 1, to: 3, order: 1 }, { from: 1, to: 4, order: 1 }, { from: 1, to: 5, order: 1 },
+        { from: 2, to: 6, order: 1 }, { from: 2, to: 7, order: 1 }, { from: 2, to: 8, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "CH2CL2",
+    formula: "CH2Cl2",
+    name: "ジクロロメタン (Dichloromethane)",
+    geometry: "歪んだ四面体構造 (極性ハロゲン化アルキル)",
+    signature: "C(Cl-1,Cl-1,H-1,H-1)|Cl(C-1)|Cl(C-1)|H(C-1)|H(C-1)",
+    desc: "医薬品精製や塗料剥離剤として重宝される低沸点溶媒だ。水より重く燃えにくい性質を持ち、かつてはコーヒー豆からカフェインだけを抽出するデカフェ処理にも利用されていた。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.15, z: 0.00 },
+        { type: "Cl", x: 1.45, y: -0.82, z: 0.00 },
+        { type: "Cl", x: -1.45, y: -0.82, z: 0.00 },
+        { type: "H", x: 0.00, y: 0.80, z: 0.89 },
+        { type: "H", x: 0.00, y: 0.80, z: -0.89 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "C2H5F",
+    formula: "C2H5F",
+    name: "フルオロエタン (Fluoroethane)",
+    geometry: "ねじれ形四面体鎖 (C-F強極性結合)",
+    signature: "C(C-1,F-1,H-1,H-1)|C(C-1,H-1,H-1,H-1)|F(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)",
+    desc: "オゾン層を破壊しない冷媒や発泡剤として開発されたフッ化アルキルだ。水素とほぼ同じ大きさのフッ素が1つ置換するだけで、代謝分解されにくくなり創薬化学でも重要な設計手法となっている。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -0.95, y: 0.22, z: 0.00 },
+        { type: "C", x: 0.48, y: -0.25, z: 0.00 },
+        { type: "F", x: 1.32, y: 0.82, z: 0.00 },
+        { type: "H", x: -1.62, y: -0.64, z: 0.00 },
+        { type: "H", x: -1.15, y: 0.82, z: 0.89 },
+        { type: "H", x: -1.15, y: 0.82, z: -0.89 },
+        { type: "H", x: 0.65, y: -0.86, z: 0.89 },
+        { type: "H", x: 0.65, y: -0.86, z: -0.89 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 1, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 }, { from: 0, to: 4, order: 1 }, { from: 0, to: 5, order: 1 },
+        { from: 1, to: 6, order: 1 }, { from: 1, to: 7, order: 1 }
+      ]
+    }
+  },
+  {
+    id: "C2H5BR",
+    formula: "C2H5Br",
+    name: "ブロモエタン (Bromoethane)",
+    geometry: "ねじれ形四面体鎖 (N殻臭素置換体)",
+    signature: "Br(C-1)|C(Br-1,C-1,H-1,H-1)|C(C-1,H-1,H-1,H-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)",
+    desc: "有機合成において分子骨格へエチル基(-C2H5)を自在に導入するための定番試薬だ。臭素は脱離能に優れているため反応の足がかりとして優秀で、医薬品や香料の合成経路で頻繁に活躍する。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -1.15, y: 0.25, z: 0.00 },
+        { type: "C", x: 0.28, y: -0.22, z: 0.00 },
+        { type: "Br", x: 1.52, y: 1.25, z: 0.00 },
+        { type: "H", x: -1.82, y: -0.61, z: 0.00 },
+        { type: "H", x: -1.35, y: 0.85, z: 0.89 },
+        { type: "H", x: -1.35, y: 0.85, z: -0.89 },
+        { type: "H", x: 0.45, y: -0.83, z: 0.89 },
+        { type: "H", x: 0.45, y: -0.83, z: -0.89 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 1, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 }, { from: 0, to: 4, order: 1 }, { from: 0, to: 5, order: 1 },
+        { from: 1, to: 6, order: 1 }, { from: 1, to: 7, order: 1 }
+      ]
+    }
+  }
+];
+
+
+// 量子・物理定数マスタ（インスペクタ詳細解析・多殻描画用）
+const QUANTUM_ELEMENT_SPECS = {
+  H: {
+    z: 1,
+    enName: "HYDROGEN",
+    atomicMass: "1.008 u",
+    shells: "K:1",
+    shellCount: 1,
+    baseConfig: "1s1",
+    valenceElectrons: 1,
+    targetOctet: 2,
+    covalentRadius: 31,
+    vdwRadius: 120,
+    paulingEN: 2.20,
+    mullikenEN: "7.18 eV",
+    ionizationEnergy: 1312.0,
+    electronAffinity: 72.8,
+    nmrIsotope: "1H (Spin 1/2, 99.98%)",
+    cloudColor: "#f8fafc",
+    coreColor: "#cbd5e1"
+  },
+  C: {
+    z: 6,
+    enName: "CARBON",
+    atomicMass: "12.011 u",
+    shells: "K:2, L:4",
+    shellCount: 2,
+    baseConfig: "1s2 2s2 2p2",
+    valenceElectrons: 4,
+    targetOctet: 8,
+    covalentRadius: 76,
+    vdwRadius: 170,
+    paulingEN: 2.55,
+    mullikenEN: "6.27 eV",
+    ionizationEnergy: 1086.5,
+    electronAffinity: 121.8,
+    nmrIsotope: "13C (Spin 1/2, 1.07%)",
+    cloudColor: "#38bdf8",
+    coreColor: "#64748b"
+  },
+  N: {
+    z: 7,
+    enName: "NITROGEN",
+    atomicMass: "14.007 u",
+    shells: "K:2, L:5",
+    shellCount: 2,
+    baseConfig: "1s2 2s2 2p3",
+    valenceElectrons: 5,
+    targetOctet: 8,
+    covalentRadius: 71,
+    vdwRadius: 155,
+    paulingEN: 3.04,
+    mullikenEN: "7.30 eV",
+    ionizationEnergy: 1402.3,
+    electronAffinity: -7.0,
+    nmrIsotope: "14N (Spin 1) / 15N (Spin 1/2)",
+    cloudColor: "#60a5fa",
+    coreColor: "#3b82f6"
+  },
+  O: {
+    z: 8,
+    enName: "OXYGEN",
+    atomicMass: "15.999 u",
+    shells: "K:2, L:6",
+    shellCount: 2,
+    baseConfig: "1s2 2s2 2p4",
+    valenceElectrons: 6,
+    targetOctet: 8,
+    covalentRadius: 66,
+    vdwRadius: 152,
+    paulingEN: 3.44,
+    mullikenEN: "7.54 eV",
+    ionizationEnergy: 1313.9,
+    electronAffinity: 141.0,
+    nmrIsotope: "17O (Spin 5/2, 0.038%)",
+    cloudColor: "#f87171",
+    coreColor: "#ef4444"
+  },
+  F: {
+    z: 9,
+    enName: "FLUORINE",
+    atomicMass: "18.998 u",
+    shells: "K:2, L:7",
+    shellCount: 2,
+    baseConfig: "1s2 2s2 2p5",
+    valenceElectrons: 7,
+    targetOctet: 8,
+    covalentRadius: 64,
+    vdwRadius: 147,
+    paulingEN: 3.98,
+    mullikenEN: "10.41 eV",
+    ionizationEnergy: 1681.0,
+    electronAffinity: 328.0,
+    nmrIsotope: "19F (Spin 1/2, 100%)",
+    cloudColor: "#4ade80",
+    coreColor: "#22c55e"
+  },
+  P: {
+    z: 15,
+    enName: "PHOSPHORUS",
+    atomicMass: "30.974 u",
+    shells: "K:2, L:8, M:5",
+    shellCount: 3,
+    baseConfig: "[Ne] 3s2 3p3",
+    valenceElectrons: 5,
+    targetOctet: 8,
+    covalentRadius: 107,
+    vdwRadius: 180,
+    paulingEN: 2.19,
+    mullikenEN: "5.62 eV",
+    ionizationEnergy: 1011.8,
+    electronAffinity: 72.0,
+    nmrIsotope: "31P (Spin 1/2, 100%)",
+    cloudColor: "#fb923c",
+    coreColor: "#f97316"
+  },
+  S: {
+    z: 16,
+    enName: "SULFUR",
+    atomicMass: "32.06 u",
+    shells: "K:2, L:8, M:6",
+    shellCount: 3,
+    baseConfig: "[Ne] 3s2 3p4",
+    valenceElectrons: 6,
+    targetOctet: 8,
+    covalentRadius: 105,
+    vdwRadius: 180,
+    paulingEN: 2.58,
+    mullikenEN: "6.22 eV",
+    ionizationEnergy: 999.6,
+    electronAffinity: 200.4,
+    nmrIsotope: "33S (Spin 3/2, 0.75%)",
+    cloudColor: "#facc15",
+    coreColor: "#eab308"
+  },
+  Cl: {
+    z: 17,
+    enName: "CHLORINE",
+    atomicMass: "35.45 u",
+    shells: "K:2, L:8, M:7",
+    shellCount: 3,
+    baseConfig: "[Ne] 3s2 3p5",
+    valenceElectrons: 7,
+    targetOctet: 8,
+    covalentRadius: 102,
+    vdwRadius: 175,
+    paulingEN: 3.16,
+    mullikenEN: "8.30 eV",
+    ionizationEnergy: 1251.2,
+    electronAffinity: 349.0,
+    nmrIsotope: "35Cl (75.8%) / 37Cl (24.2%)",
+    cloudColor: "#34d399",
+    coreColor: "#10b981"
+  },
+  Br: {
+    z: 35,
+    enName: "BROMINE",
+    atomicMass: "79.904 u",
+    shells: "K:2, L:8, M:18, N:7",
+    shellCount: 4,
+    baseConfig: "[Ar] 3d10 4s2 4p5",
+    valenceElectrons: 7,
+    targetOctet: 8,
+    covalentRadius: 120,
+    vdwRadius: 185,
+    paulingEN: 2.96,
+    mullikenEN: "7.59 eV",
+    ionizationEnergy: 1139.9,
+    electronAffinity: 324.6,
+    nmrIsotope: "79Br (50.7%) / 81Br (49.3%)",
+    cloudColor: "#f87171",
+    coreColor: "#b91c1c"
+  }
+};
+
+// 平均結合解離エンタルピー (kJ/mol)
+const BOND_ENTHALPY_TABLE = {
+  "H-H:1": 436,
+  "C-H:1": 413,
+  "C-C:1": 348,
+  "C-C:2": 614,
+  "C-C:3": 839,
+  "C-O:1": 358,
+  "C-O:2": 799,
+  "H-O:1": 463,
+  "H-N:1": 391,
+  "C-N:1": 305,
+  "C-N:2": 615,
+  "C-N:3": 891,
+  "N-N:1": 163,
+  "N-N:2": 418,
+  "N-N:3": 945,
+  "O-O:1": 146,
+  "O-O:2": 498,
+  "N-O:1": 201,
+  "N-O:2": 607,
+  "F-H:1": 568,
+  "C-F:1": 485,
+  "F-F:1": 159,
+  "F-N:1": 272,
+  "F-O:1": 190,
+  "F-P:1": 490,
+  "F-S:1": 327,
+  "Cl-H:1": 431,
+  "C-Cl:1": 328,
+  "Cl-Cl:1": 243,
+  "Cl-N:1": 200,
+  "Cl-O:1": 203,
+  "Cl-P:1": 319,
+  "Cl-S:1": 253,
+  "Br-H:1": 366,
+  "Br-C:1": 276,
+  "Br-Br:1": 193,
+  "Br-P:1": 264,
+  "Br-S:1": 218,
+  "H-S:1": 347,
+  "C-S:1": 259,
+  "C-S:2": 536,
+  "S-S:1": 266,
+  "H-P:1": 322,
+  "C-P:1": 264,
+  "P-P:1": 201,
+  "O-P:1": 335,
+  "O-P:2": 544,
+  "O-S:1": 265,
+  "O-S:2": 523
+};
+
+
+
+// ======================================================================
+// 【第3章：状態管理・履歴システム (State & History Management)】
+// 配置済み原子(atoms)、結合線(bonds)、履歴スタック、カメラ状態
+// ======================================================================
+const chemState = {
+  atoms: [],
+  bonds: [],
+  nextAtomId: 1,
+  nextBondId: 1,
+  selectedElement: "C",
+  isEraseMode: false,
+  history: [],
+  discoveredIds: new Set(),
+  lastEvaluation: null,
+inspector: {
+    targetAtomId: null,
+    visible: true,
+    deepSpec: false,
+    telemetry3D: true,
+    animRunning: false
+  },
+
+  drill: {
+    active: false,
+    level: 1,
+    currentMission: null,
+    showingAnswer: false,
+    savedUserBonds: null
+  },
+  dragState: {
+    activeAtomId: null,
+    startX: 0,
+    startY: 0,
+    currX: 0,
+    currY: 0,
+    hasMoved: false
+  }
+};
+
+
+
+const camera3D = {
+  rotX: CHEM_ENV.DEFAULT_ROT_X,
+  rotY: CHEM_ENV.DEFAULT_ROT_Y,
+  zoom: 1.0,
+  orbitRadius: CHEM_ENV.ORBIT_RADIUS_3D,
+  autoRotate: false,
+  isDragging: false
+};
+
+function saveSnapshot() {
+  chemState.history.push({
+    atoms: JSON.parse(JSON.stringify(chemState.atoms)),
+    bonds: JSON.parse(JSON.stringify(chemState.bonds)),
+    nextAtomId: chemState.nextAtomId,
+    nextBondId: chemState.nextBondId
+  });
+  if (chemState.history.length > 30) chemState.history.shift();
+}
+
+function undoAction() {
+  if (chemState.history.length === 0) return;
+  const prev = chemState.history.pop();
+  chemState.atoms = prev.atoms;
+  chemState.bonds = prev.bonds;
+  chemState.nextAtomId = prev.nextAtomId;
+  chemState.nextBondId = prev.nextBondId;
+  refreshSimulation();
+}
+
+function clearWorkspace(recordHistory = true) {
+  if (recordHistory && chemState.atoms.length > 0) saveSnapshot();
+  chemState.atoms.length = 0;
+  chemState.bonds.length = 0;
+  chemState.nextAtomId = 1;
+  chemState.nextBondId = 1;
+  refreshSimulation();
+}
+
+function snapToGrid(val) {
+  return Math.round(val / CHEM_ENV.GRID_PITCH) * CHEM_ENV.GRID_PITCH;
+}
+
+function addAtom(type, x, y, recordHistory = true) {
+  if (!ELEMENTS[type] || chemState.atoms.length >= CHEM_ENV.MAX_ATOMS) return null;
+  if (recordHistory) saveSnapshot();
+  const atom = {
+    id: `A_${chemState.nextAtomId++}`,
+    type,
+    x: snapToGrid(x),
+    y: snapToGrid(y)
+  };
+  chemState.atoms.push(atom);
+  return atom;
+}
+
+function removeAtom(atomId) {
+  saveSnapshot();
+  chemState.atoms = chemState.atoms.filter(a => a.id !== atomId);
+  chemState.bonds = chemState.bonds.filter(b => b.from !== atomId && b.to !== atomId);
+}
+
+function addOrCycleBond(fromId, toId) {
+  if (fromId === toId) return;
+  saveSnapshot();
+  const existing = chemState.bonds.find(
+    b => (b.from === fromId && b.to === toId) || (b.from === toId && b.to === fromId)
+  );
+  if (existing) {
+    if (existing.order < 3) {
+      existing.order += 1;
+    } else {
+      chemState.bonds = chemState.bonds.filter(b => b !== existing);
+    }
+    return;
+  }
+  chemState.bonds.push({
+    id: `B_${chemState.nextBondId++}`,
+    from: fromId,
+    to: toId,
+    order: 1
+  });
+}
+
+function cycleBondByInstance(bond) {
+  saveSnapshot();
+  if (bond.order < 3) {
+    bond.order += 1;
+  } else {
+    chemState.bonds = chemState.bonds.filter(b => b !== bond);
+  }
+}
+
+// ハイブリッド・プログレッシブ分子ドリル動的生成エンジン (Lv.1 - Lv.5)
+function generateChemDrill(lv, viewW, viewH) {
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const isomerSwaps = {
+    C2H5OH: "CH3OCH3",
+    CH3OCH3: "C2H5OH",
+    N_BUTANE: "ISOBUTANE",
+    ISOBUTANE: "N_BUTANE",
+    C3H6_PROPENE: "C3H6_CYCLOPROPANE",
+    C3H6_CYCLOPROPANE: "C3H6_PROPENE"
+  };
+
+  const levelPools = {
+    1: ["H2O", "CH4", "NH3"],
+    2: ["CO2", "CH2O", "C2H4", "C2H2"],
+    3: ["CO2", "C2H4", "C2H2", "C2H5OH"],
+    4: ["C2H5OH", "CH3OCH3", "C3H6_PROPENE", "C3H6_CYCLOPROPANE"],
+    5: ["N_BUTANE", "ISOBUTANE", "C2H5OH", "CH3OCH3", "C3H6_CYCLOPROPANE"]
+  };
+
+  const targetId = pick(levelPools[lv] || levelPools[1]);
+  const targetMol = MOLECULE_DB.find(m => m.id === targetId);
+
+// 中心間距離保証ロジック: 全方向(上下左右・斜め)の重なりを防止してランダム座標を割り当て
+  const pitch = CHEM_ENV.GRID_PITCH;
+  const margin = 44;
+  const usableW = Math.max(pitch * 4, viewW - margin * 2);
+  const usableH = Math.max(pitch * 3, viewH - margin * 2);
+  const placedPositions = [];
+
+  const allocateCell = () => {
+    const distanceSteps = [84, 72, 62, 52];
+    for (const minDist of distanceSteps) {
+      for (let attempt = 0; attempt < 150; attempt++) {
+        const rawX = margin + Math.random() * usableW;
+        const rawY = margin + Math.random() * usableH;
+        const x = snapToGrid(rawX);
+        const y = snapToGrid(rawY);
+        const isClear = placedPositions.every(p => Math.hypot(p.x - x, p.y - y) >= minDist);
+        if (isClear) {
+          placedPositions.push({ x, y });
+          return { x, y };
+        }
+      }
+    }
+    const idx = placedPositions.length;
+    const step = pitch * 2;
+    const cols = Math.max(2, Math.floor(usableW / step));
+    const fallback = {
+      x: snapToGrid(margin + (idx % cols) * step),
+      y: snapToGrid(margin + Math.floor(idx / cols) * step)
+    };
+    placedPositions.push(fallback);
+    return fallback;
+  };
+  const atoms = targetMol.model3D.atoms.map((a, idx) => {
+    const pos = allocateCell();
+    return { id: `A_${idx + 1}`, type: a.type, x: pos.x, y: pos.y };
+  });
+
+  const answerBonds = targetMol.model3D.bonds.map((b, idx) => ({
+    id: `B_ANS_${idx + 1}`,
+    from: atoms[b.from].id,
+    to: atoms[b.to].id,
+    order: b.order
+  }));
+
+  let initialBonds = [];
+  let modeLabel = "新規結線構築";
+  let symptomHint = `指定された実在分子 [${targetMol.name}] を組み立てよ。`;
+
+  if (lv >= 3) {
+    const faultModes = lv === 3
+      ? ["UNDER_ORDER", "BYPASS_BOND"]
+      : (lv === 4 ? ["ISOMER_REWIRE"] : ["ISOMER_REWIRE", "BYPASS_BOND", "UNDER_ORDER"]);
+    const faultMode = pick(faultModes);
+
+    if (faultMode === "ISOMER_REWIRE" && isomerSwaps[targetId]) {
+      const wrongMol = MOLECULE_DB.find(m => m.id === isomerSwaps[targetId]);
+      // 同じ元素種スロットへ誤った異性体の結合網をマッピング
+      const typeBuckets = {};
+      atoms.forEach(a => {
+        if (!typeBuckets[a.type]) typeBuckets[a.type] = [];
+        typeBuckets[a.type].push(a.id);
+      });
+      const wrongIdxToAtomId = wrongMol.model3D.atoms.map(wa => typeBuckets[wa.type].shift());
+      initialBonds = wrongMol.model3D.bonds.map((wb, idx) => ({
+        id: `B_ERR_${idx + 1}`,
+        from: wrongIdxToAtomId[wb.from],
+        to: wrongIdxToAtomId[wb.to],
+        order: wb.order
+      }));
+      modeLabel = "異性体再配線診断";
+      symptomHint = `原子価は一致しているが別の構造異性体に誤結線されている。結合を組み替えて [${targetMol.name}] へ修正せよ。`;
+    } else if (faultMode === "UNDER_ORDER") {
+      initialBonds = JSON.parse(JSON.stringify(answerBonds));
+      const multiBond = initialBonds.find(b => b.order > 1);
+      if (multiBond) {
+        multiBond.order -= 1;
+        modeLabel = "結合次数不全修復";
+        symptomHint = `多重結合の次数不足により不安定状態になっている。手を補って [${targetMol.name}] へ復旧せよ。`;
+      } else {
+        initialBonds.pop();
+        modeLabel = "結合欠損修復";
+        symptomHint = `結合線が1本欠落している。不足経路を特定し [${targetMol.name}] へ復旧せよ。`;
+      }
+    } else {
+      // BYPASS_BOND: 余分な短絡結合線を注入
+      initialBonds = JSON.parse(JSON.stringify(answerBonds));
+      for (let i = 0; i < atoms.length; i++) {
+        let injected = false;
+        for (let j = i + 1; j < atoms.length; j++) {
+          const exists = initialBonds.some(
+            b => (b.from === atoms[i].id && b.to === atoms[j].id) || (b.from === atoms[j].id && b.to === atoms[i].id)
+          );
+          if (!exists) {
+            initialBonds.push({
+              id: "B_FAULT_BYPASS",
+              from: atoms[i].id,
+              to: atoms[j].id,
+              order: 1
+            });
+            injected = true;
+            break;
+          }
+        }
+        if (injected) break;
+      }
+      modeLabel = "過剰架橋バイパス診断";
+      symptomHint = `余分なバイパス結合が混入し原子価が破綻している。不正な結合を除去し [${targetMol.name}] へ復旧せよ。`;
+    }
+  }
+
+  return {
+    level: lv,
+    targetId,
+    targetMolecule: targetMol,
+    modeLabel,
+    symptomHint,
+    atoms,
+    initialBonds,
+    answerBonds
+  };
+}
+
+function startNewDrill(lv = chemState.drill.level) {
+  const viewport = document.getElementById("canvas-2d-viewport");
+  const canvas = document.getElementById("canvas-2d");
+  if (viewport) {
+    viewport.scrollLeft = 0;
+    viewport.scrollTop = 0;
+  }
+  const w = (viewport && viewport.clientWidth > 0) ? viewport.clientWidth : (canvas ? canvas.width : 480);
+  const h = (viewport && viewport.clientHeight > 0) ? viewport.clientHeight : (canvas ? canvas.height : 360);
+
+  chemState.drill.active = true;  chemState.drill.level = lv;
+  chemState.drill.showingAnswer = false;
+  chemState.drill.savedUserBonds = null;
+
+  const mission = generateChemDrill(lv, w, h);
+  chemState.drill.currentMission = mission;
+
+  chemState.atoms = JSON.parse(JSON.stringify(mission.atoms));
+  chemState.bonds = JSON.parse(JSON.stringify(mission.initialBonds));
+  chemState.nextAtomId = chemState.atoms.length + 1;
+  chemState.nextBondId = chemState.bonds.length + 1;
+  chemState.history.length = 0;
+  chemState.isEraseMode = false;
+
+  syncDrillToolbarUI();
+  refreshSimulation();
+}
+
+function toggleAnswerDisplay() {
+  if (!chemState.drill.active || !chemState.drill.currentMission) return;
+  const mission = chemState.drill.currentMission;
+
+  if (!chemState.drill.showingAnswer) {
+    chemState.drill.savedUserBonds = JSON.parse(JSON.stringify(chemState.bonds));
+    chemState.bonds = JSON.parse(JSON.stringify(mission.answerBonds));
+    chemState.drill.showingAnswer = true;
+  } else {
+    if (chemState.drill.savedUserBonds) {
+      chemState.bonds = JSON.parse(JSON.stringify(chemState.drill.savedUserBonds));
+    }
+    chemState.drill.savedUserBonds = null;
+    chemState.drill.showingAnswer = false;
+  }
+
+ syncDrillToolbarUI();
+  refreshSimulation();
+}
+
+// 対象原子の結合前(ISOLATED) vs 結合後(BONDED) 量子・物理テレメトリ計算
+function analyzeAtomQuantumState(atom) {
+  const spec = QUANTUM_ELEMENT_SPECS[atom.type] || QUANTUM_ELEMENT_SPECS.C;
+  const maxValence = ELEMENTS[atom.type] ? ELEMENTS[atom.type].valence : 4;
+  const connectedBonds = chemState.bonds.filter(b => b.from === atom.id || b.to === atom.id);
+
+  let usedValence = 0;
+  let totalBondEnergy = 0;
+  let deltaCharge = 0;
+  let oxidationSum = 0;
+  const neighbors = [];
+
+  connectedBonds.forEach(b => {
+    usedValence += b.order;
+    const partnerId = b.from === atom.id ? b.to : b.from;
+    const partner = chemState.atoms.find(a => a.id === partnerId);
+    if (partner) {
+      const pSpec = QUANTUM_ELEMENT_SPECS[partner.type] || QUANTUM_ELEMENT_SPECS.C;
+      const pair = [atom.type, partner.type].sort().join("-");
+      const enthalpy = BOND_ENTHALPY_TABLE[`${pair}:${b.order}`] || 300;
+      totalBondEnergy += enthalpy;
+
+      const enDiff = pSpec.paulingEN - spec.paulingEN;
+      deltaCharge += enDiff * 0.14 * b.order;
+      if (Math.abs(enDiff) > 0.05) {
+        oxidationSum += (enDiff > 0 ? 1 : -1) * b.order;
+      }
+
+      const angleRad = Math.atan2(partner.y - atom.y, partner.x - atom.x);
+      const bondDistPm = spec.covalentRadius + pSpec.covalentRadius - (b.order - 1) * 11;
+      neighbors.push({
+        id: partner.id,
+        type: partner.type,
+        order: b.order,
+        enthalpy,
+        bondDistPm,
+        angleRad
+      });
+    }
+  });
+
+  const isBonded = usedValence > 0;
+  const ownNonBonding = Math.max(0, spec.valenceElectrons - usedValence);
+  const lonePairs = isBonded ? Math.floor(ownNonBonding / 2) : Math.floor(spec.valenceElectrons / 2);
+  const totalShellElectrons = isBonded ? Math.min(spec.targetOctet + 2, spec.valenceElectrons + usedValence) : spec.valenceElectrons;
+  const formalCharge = spec.valenceElectrons - usedValence - ownNonBonding;
+  const coordination = neighbors.length;
+  const stericNumber = isBonded ? (coordination + lonePairs) : 0;
+  const nShell = spec.shellCount || (spec.z === 1 ? 1 : 2);
+  const closedCoreTag = nShell === 1 ? "[He-Core]" : (nShell === 2 ? "[Ne-Core]" : (nShell === 3 ? "[Ar-Core]" : "[Kr-Core]"));
+
+  let hybridization = "ATOMIC (Unmixed)";
+  let vseprCode = "AX0 (Spherical)";
+  let idealAngle = "N/A (Isotropic)";
+  let bondedConfig = spec.baseConfig;
+
+  if (isBonded) {
+    if (nShell === 1) {
+      hybridization = "1s Sigma Overlap";
+      vseprCode = "AX1 (Terminal)";
+      idealAngle = "180.0 deg (Linear Axis)";
+      bondedConfig = `1s2 ${closedCoreTag}`;
+    } else if (stericNumber >= 4) {
+      hybridization = "sp3 Hybrid";
+      vseprCode = lonePairs === 0 ? "AX4 (Tetrahedral)" : (lonePairs === 1 ? "AX3E (Trigonal Pyramidal)" : "AX2E2 (Bent)");
+      idealAngle = lonePairs === 0 ? "109.5 deg" : (lonePairs === 1 ? "107.0 deg" : "104.5 deg");
+      bondedConfig = `(sp3)^${Math.min(8, totalShellElectrons)} ${closedCoreTag}`;
+    } else if (stericNumber === 3) {
+      hybridization = `sp2 Hybrid + ${nShell}p(pi)`;
+      vseprCode = lonePairs === 0 ? "AX3 (Trigonal Planar)" : "AX2E (Bent)";
+      idealAngle = lonePairs === 0 ? "120.0 deg" : "117.5 deg";
+      bondedConfig = `(sp2)^6 (${nShell}p)^2 [Pi-System]`;
+    } else {
+      hybridization = `sp Hybrid + 2x${nShell}p(pi)`;
+      vseprCode = lonePairs === 0 ? "AX2 (Linear)" : "AXE (Linear)";
+      idealAngle = "180.0 deg";
+      bondedConfig = `(sp)^4 (${nShell}p)^4 [Triple/Cumulene]`;
+    }
+  }
+
+  let stabilityLabel = "ISOLATED RADICAL";
+  if (usedValence === maxValence) {
+    stabilityLabel = "OCTET CLOSED [STABLE]";
+  } else if (usedValence > maxValence) {
+    stabilityLabel = "HYPERVALENT OVERFLOW [ERR]";
+  } else if (isBonded) {
+    stabilityLabel = `UNSATURATED (-${maxValence - usedValence} HAND)`;
+  }
+
+  return {
+    atom,
+    spec,
+    maxValence,
+    usedValence,
+    isBonded,
+    ownNonBonding,
+    lonePairs,
+    totalShellElectrons,
+    formalCharge,
+    deltaCharge,
+    oxidationSum,
+    totalBondEnergy,
+    coordination,
+    stericNumber,
+    hybridization,
+    vseprCode,
+    idealAngle,
+    bondedConfig,
+    stabilityLabel,
+    neighbors
+  };
+}
+
+// 量子確率雲（多殻K/L/M/N対応・ガウス減衰ミスト）リアルタイムCanvas描画ループ
+function renderQuantumProbabilityCloud() {
+  const canvas = document.getElementById("quantum-cloud-canvas");
+  if (!canvas || !chemState.inspector.visible) return;
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = w / 2;
+  const cy = h / 2;
+
+  // 滑らかな残像減衰でミストの連続性を維持
+  ctx.fillStyle = "rgba(2, 6, 23, 0.28)";
+  ctx.fillRect(0, 0, w, h);
+
+  // 極薄テレメトリ十字軸
+  ctx.strokeStyle = "rgba(56, 189, 248, 0.11)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, cy);
+  ctx.lineTo(w, cy);
+  ctx.moveTo(cx, 0);
+  ctx.lineTo(cx, h);
+  ctx.stroke();
+
+  const targetAtom = chemState.atoms.find(a => a.id === chemState.inspector.targetAtomId) || chemState.atoms[0];
+  if (!targetAtom) {
+    ctx.fillStyle = "#475569";
+    ctx.font = "10px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("NO TARGET", cx, cy + 3);
+    return;
+  }
+
+  const q = analyzeAtomQuantumState(targetAtom);
+  const gauss = () => ((Math.random() + Math.random() + Math.random() + Math.random() - 2) * 1.414);
+  const nShell = q.spec.shellCount || (q.spec.z === 1 ? 1 : 2);
+  // 共有結合半径に比例した外殻確率雲スケール（Zero Hardcoding）
+  const scaleR = Math.min(33, Math.max(14, 9.5 + q.spec.covalentRadius * 0.18));
+
+  // 1. 多層内殻ミスト（K殻=1層目, L殻=2層目, M殻=3層目）
+  const innerShellCount = Math.max(0, nShell - 1);
+  const innerPalette = ["#94a3b8", "#64748b", "#475569"];
+  for (let sIdx = 0; sIdx < innerShellCount; sIdx++) {
+    const shellSigma = 5.2 + sIdx * 4.4;
+    const dotCount = 30 + sIdx * 16;
+    ctx.fillStyle = innerPalette[sIdx % innerPalette.length];
+    for (let i = 0; i < dotCount; i++) {
+      const r = Math.abs(gauss()) * shellSigma;
+      const theta = Math.random() * Math.PI * 2;
+      const fade = Math.exp(-r / (shellSigma * 1.45));
+      ctx.globalAlpha = fade * (0.68 - sIdx * 0.14);
+      ctx.fillRect(cx + Math.cos(theta) * r, cy + Math.sin(theta) * r, 1.1, 1.1);
+    }
+  }
+
+  if (!q.isBonded) {
+    // 2A. 結合前（孤立状態）: 最外殻s軌道ミスト
+    const sDots = nShell === 1 ? 110 : 75;
+    for (let i = 0; i < sDots; i++) {
+      const r = Math.abs(gauss()) * scaleR;
+      const theta = Math.random() * Math.PI * 2;
+      const fade = Math.exp(-r / (scaleR * 1.25));
+      ctx.fillStyle = q.spec.cloudColor;
+      ctx.globalAlpha = fade * (0.25 + Math.random() * 0.55);
+      ctx.fillRect(cx + Math.cos(theta) * r, cy + Math.sin(theta) * r, 1.15, 1.15);
+    }
+
+    // 最外殻pオービタル（フントの規則に基づく不対電子ローブと既ペア電子ローブの自動算出）
+    if (nShell > 1) {
+      const pElectrons = Math.max(0, q.spec.valenceElectrons - 2);
+      const maxPOrbitals = 3;
+      const activeLobes = Math.min(maxPOrbitals, pElectrons);
+      const pairedLobes = Math.max(0, pElectrons - maxPOrbitals);
+
+      const lobes = [];
+      for (let idx = 0; idx < activeLobes; idx++) {
+        lobes.push({
+          angle: (idx * Math.PI) / activeLobes,
+          paired: idx < pairedLobes
+        });
+      }
+
+      const pDots = pElectrons * 34;
+      for (let i = 0; i < pDots; i++) {
+        const lobe = lobes[i % lobes.length];
+        const sign = Math.random() < 0.5 ? 1 : -1;
+        const peakBase = scaleR * 0.66;
+        const radialPeak = peakBase + Math.abs(gauss()) * (scaleR * 0.42);
+        const angSpread = gauss() * (lobe.paired ? 0.34 : 0.25);
+        const angle = lobe.angle + (sign > 0 ? 0 : Math.PI) + angSpread;
+
+        const radialFade = Math.exp(-Math.max(0, radialPeak - peakBase) / (scaleR * 0.78));
+        const angFade = Math.exp(-(angSpread * angSpread) / 0.14);
+        ctx.fillStyle = lobe.paired ? "#fbbf24" : "#34d399";
+        ctx.globalAlpha = radialFade * angFade * (lobe.paired ? 0.85 : 0.62);
+        ctx.fillRect(cx + Math.cos(angle) * radialPeak, cy + Math.sin(angle) * radialPeak, 1.15, 1.15);
+      }
+    }
+  } else {
+    // 2B. 結合後（分子内状態）: 結合軸方向へ減衰しながら伸びる共有電子対ミスト
+    q.neighbors.forEach(nb => {
+      const sigmaDots = 70 * nb.order;
+      for (let i = 0; i < sigmaDots; i++) {
+        const dist = 7 + Math.abs(gauss()) * (scaleR * 0.92);
+        const latSigma = nb.order === 1 ? 3.4 : 5.6;
+        const lateral = gauss() * latSigma;
+        const perpAngle = nb.angleRad + Math.PI / 2;
+        const px = cx + Math.cos(nb.angleRad) * dist + Math.cos(perpAngle) * lateral;
+        const py = cy + Math.sin(nb.angleRad) * dist + Math.sin(perpAngle) * lateral;
+
+        const distFade = Math.exp(-Math.max(0, dist - 10) / 26);
+        const latFade = Math.exp(-(lateral * lateral) / (2 * latSigma * latSigma));
+        const isPiRegion = nb.order > 1 && Math.abs(lateral) > 3.2;
+
+        ctx.fillStyle = isPiRegion ? "#a855f7" : "#22d3ee";
+        ctx.globalAlpha = distFade * latFade * (0.35 + Math.random() * 0.65);
+        ctx.fillRect(px, py, 1.2, 1.2);
+      }
+    });
+
+    // 非共有電子対（ローンペア）のガウス減衰ミスト
+    if (q.lonePairs > 0) {
+      const avgAngle = q.neighbors.reduce((acc, n) => acc + n.angleRad, 0) / Math.max(1, q.neighbors.length);
+      for (let lp = 0; lp < q.lonePairs; lp++) {
+        const offset = q.lonePairs === 1
+          ? Math.PI
+          : (Math.PI * 0.65 + (lp / Math.max(1, q.lonePairs - 1)) * Math.PI * 0.7);
+        const lpAngle = avgAngle + offset;
+        for (let i = 0; i < 50; i++) {
+          const dist = 10 + Math.abs(gauss()) * (scaleR * 0.42);
+          const angSpread = gauss() * 0.32;
+          const px = cx + Math.cos(lpAngle + angSpread) * dist;
+          const py = cy + Math.sin(lpAngle + angSpread) * dist;
+
+          const fade = Math.exp(-Math.max(0, dist - 10) / 14) * Math.exp(-(angSpread * angSpread) / 0.18);
+          ctx.fillStyle = "#fbbf24";
+          ctx.globalAlpha = fade * (0.3 + Math.random() * 0.65);
+          ctx.fillRect(px, py, 1.15, 1.15);
+        }
+      }
+    }
+  }
+
+  ctx.globalAlpha = 1.0;
+
+  // 中心の原子核コア描画
+  const coreRadius = Math.min(7.5, Math.max(4.2, 3.6 + nShell * 0.95));
+  ctx.fillStyle = q.spec.coreColor;
+  ctx.beginPath();
+  ctx.arc(cx, cy, coreRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#e2e8f0";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+
+
+function renderInspectorCalloutLine() {
+  const canvas2d = document.getElementById("canvas-2d");
+  const host = document.getElementById("puzzle-stage") || (canvas2d ? canvas2d.parentElement : null);
+  const hud = document.getElementById("quantum-inspector-hud");
+  if (!canvas2d || !host || !hud) return;
+  if (getComputedStyle(host).position === "static") {
+    host.style.position = "relative";
+  }
+
+  let overlay = document.getElementById("inspector-callout-canvas");
+  if (!overlay) {
+    overlay = document.createElement("canvas");
+    overlay.id = "inspector-callout-canvas";
+    host.appendChild(overlay);
+  }
+  overlay.style.cssText = "position:absolute; left:0; top:0; width:100%; height:100%; margin:0; padding:0; background:transparent !important; background-color:transparent !important; pointer-events:none; z-index:35;";
+
+
+  const hostW = host.clientWidth;
+  const hostH = host.clientHeight;
+  if (hostW === 0 || hostH === 0) return;
+  if (overlay.width !== hostW || overlay.height !== hostH) {
+    overlay.width = hostW;
+    overlay.height = hostH;
+  }
+
+  const ctx = overlay.getContext("2d");
+  ctx.clearRect(0, 0, hostW, hostH);
+
+  if (!chemState.inspector || !chemState.inspector.visible) return;
+  const targetAtom = chemState.atoms.find(a => a.id === chemState.inspector.targetAtomId);
+  if (!targetAtom) return;
+
+  const hostRect = host.getBoundingClientRect();
+  const cRect = canvas2d.getBoundingClientRect();
+  const hRect = hud.getBoundingClientRect();
+  if (hRect.width === 0 || hRect.height === 0) return;
+
+  const scaleX = cRect.width / (canvas2d.width || 1);
+  const scaleY = cRect.height / (canvas2d.height || 1);
+  const ax = (cRect.left - hostRect.left) + targetAtom.x * scaleX;
+  const ay = (cRect.top - hostRect.top) + targetAtom.y * scaleY;
+
+  const hudLeft = hRect.left - hostRect.left;
+  const hudTop = hRect.top - hostRect.top;
+  const hudRight = hudLeft + hRect.width;
+  const hudBottom = hudTop + hRect.height;
+
+// 接続先は常にHUDの左辺とし、最終区間が水平に繋がるエルボー座標を算出
+  const tx = hudLeft;
+  const ty = Math.max(hudTop + 18, Math.min(hudBottom - 18, ay));
+  const minHorizontal = 28;
+  const diagX = ax + Math.abs(ty - ay);
+  const ex = Math.min(tx - minHorizontal, diagX);
+  const ey = ty;
+
+  const reticleR = 25;
+  ctx.save();
+  ctx.strokeStyle = "rgba(34, 211, 238, 0.85)";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(ax, ay, reticleR, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const angle = Math.atan2(ey - ay, ex - ax);
+  const sx = ax + Math.cos(angle) * reticleR;
+  const sy = ay + Math.sin(angle) * reticleR;
+
+  ctx.strokeStyle = "#22d3ee";
+  ctx.lineWidth = 1.4;
+  ctx.shadowColor = "rgba(34, 211, 238, 0.65)";
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(ex, ey);
+  ctx.lineTo(tx, ty);
+  ctx.stroke();
+
+  ctx.fillStyle = "#34d399";
+  ctx.beginPath();
+  ctx.arc(tx, ty, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function startQuantumCloudLoop() {
+  if (chemState.inspector.animRunning) return;
+  chemState.inspector.animRunning = true;
+  const tick = () => {
+    renderQuantumProbabilityCloud();
+    renderInspectorCalloutLine();
+    if (chemState.lastEvaluation && chemState.lastEvaluation.status === "STABLE_MATCH") {
+      if (camera3D.autoRotate && !camera3D.isDragging) {
+        camera3D.rotY = (camera3D.rotY + CHEM_ENV.AUTO_ROTATE_SPEED) % (Math.PI * 2);
+      }
+      render3DViewer();
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+
+// ======================================================================
+// 【第4章：グラフ指紋解析 ＆ 化学構造判定コア (Graph Topology & Chemistry Core)】
+// ======================================================================
+function evaluateMoleculeState() {
+  const atoms = chemState.atoms;
+  const bonds = chemState.bonds;
+
+  if (atoms.length === 0) {
+    return {
+      status: "EMPTY",
+      message: "元素ボタンを選び、2Dキャンバスをタップして原子を配置してください。",
+      atomDiagnostics: []
+    };
+  }
+
+  const adjMap = new Map();
+  const usedValenceMap = new Map();
+  atoms.forEach(a => {
+    adjMap.set(a.id, []);
+    usedValenceMap.set(a.id, 0);
+  });
+
+  bonds.forEach(b => {
+    const atomA = atoms.find(a => a.id === b.from);
+    const atomB = atoms.find(a => a.id === b.to);
+    if (!atomA || !atomB) return;
+    const order = b.order || 1;
+    usedValenceMap.set(atomA.id, usedValenceMap.get(atomA.id) + order);
+    usedValenceMap.set(atomB.id, usedValenceMap.get(atomB.id) + order);
+    adjMap.get(atomA.id).push({ neighborType: atomB.type, order });
+    adjMap.get(atomB.id).push({ neighborType: atomA.type, order });
+  });
+
+  const atomDiagnostics = atoms.map(a => {
+    const maxValence = ELEMENTS[a.type].valence;
+    const usedValence = usedValenceMap.get(a.id);
+    const diff = maxValence - usedValence;
+    return {
+      id: a.id,
+      type: a.type,
+      usedValence,
+      maxValence,
+      state: diff === 0 ? "OK" : (diff > 0 ? "INCOMPLETE" : "OVERFLOW")
+    };
+  });
+
+  if (atomDiagnostics.some(d => d.state !== "OK")) {
+    return {
+      status: "UNSTABLE",
+      message: "結合の手の数(原子価)が過不足している原子があります。すべての手の数を合わせてください。",
+      atomDiagnostics
+    };
+  }
+
+  const visited = new Set([atoms[0].id]);
+  const queue = [atoms[0].id];
+  const neighborIdsMap = new Map();
+  atoms.forEach(a => neighborIdsMap.set(a.id, []));
+  bonds.forEach(b => {
+    neighborIdsMap.get(b.from).push(b.to);
+    neighborIdsMap.get(b.to).push(b.from);
+  });
+
+  while (queue.length > 0) {
+    const curr = queue.shift();
+    for (const nxt of neighborIdsMap.get(curr)) {
+      if (!visited.has(nxt)) {
+        visited.add(nxt);
+        queue.push(nxt);
+      }
+    }
+  }
+
+  if (visited.size !== atoms.length) {
+    return {
+      status: "DISCONNECTED",
+      message: "離ればなれの原子グループがあります。1つの分子に繋げてください。",
+      atomDiagnostics
+    };
+  }
+
+  const atomDescriptors = atoms.map(a => {
+    const neighbors = adjMap.get(a.id)
+      .map(n => `${n.neighborType}-${n.order}`)
+      .sort()
+      .join(",");
+    return `${a.type}(${neighbors})`;
+  });
+  const signature = atomDescriptors.sort().join("|");
+
+const matchedMolecule = MOLECULE_DB.find(m => m.signature === signature);
+  if (!matchedMolecule) {
+    const unlistedMol = buildUnlistedMolecule(atoms, bonds, signature);
+    return {
+      status: "STABLE_MATCH",
+      isUnlisted: true,
+      signature,
+      molecule: unlistedMol,
+      message: `UNLISTED_STABLE: 既知アーカイブに該当なし。未知の安定分子 [${unlistedMol.formula}] を観測。`,
+      atomDiagnostics
+    };
+  }
+
+  chemState.discoveredIds.add(matchedMolecule.id);
+  return {
+    status: "STABLE_MATCH",
+    signature,
+    molecule: matchedMolecule,
+    message: `分子構造を同定: ${matchedMolecule.name} [${matchedMolecule.formula}]`,
+    atomDiagnostics
+  };
+
+}
+
+// 辞書未登録の安定分子に対する組成式・立体構造・3D量子モデルの自動生成
+function buildUnlistedMolecule(atoms, bonds, signature) {
+  // 1. ヒル方式（Hill System）による組成式生成
+  const counts = {};
+  atoms.forEach(a => {
+    counts[a.type] = (counts[a.type] || 0) + 1;
+  });
+  let orderedSymbols = [];
+  if (counts.C) {
+    orderedSymbols.push("C");
+    if (counts.H) orderedSymbols.push("H");
+    Object.keys(counts)
+      .filter(s => s !== "C" && s !== "H")
+      .sort()
+      .forEach(s => orderedSymbols.push(s));
+  } else {
+    orderedSymbols = Object.keys(counts).sort();
+  }
+  const formula = orderedSymbols.map(s => s + (counts[s] > 1 ? counts[s] : "")).join("");
+
+  // 2. インデックス変換と隣接リスト構築
+  const idToIndex = new Map();
+  atoms.forEach((a, i) => idToIndex.set(a.id, i));
+  const n = atoms.length;
+  const modelBonds = bonds.map(b => ({
+    from: idToIndex.get(b.from),
+    to: idToIndex.get(b.to),
+    order: b.order || 1
+  }));
+
+  const adj = Array.from({ length: n }, () => []);
+  const usedVal = new Array(n).fill(0);
+  modelBonds.forEach(b => {
+    adj[b.from].push({ to: b.to, order: b.order });
+    adj[b.to].push({ to: b.from, order: b.order });
+    usedVal[b.from] += b.order;
+    usedVal[b.to] += b.order;
+  });
+
+  // 3. 2D配置を基準にZ軸の立体オフセットを付与して初期3D座標を生成
+  const cx2d = atoms.reduce((s, a) => s + a.x, 0) / n;
+  const cy2d = atoms.reduce((s, a) => s + a.y, 0) / n;
+  const coords = atoms.map((a, idx) => {
+    const qSpec = QUANTUM_ELEMENT_SPECS[a.type] || { valenceElectrons: 4 };
+    const lp = Math.max(0, Math.floor((qSpec.valenceElectrons - usedVal[idx]) / 2));
+    const steric = adj[idx].length + lp;
+    const zJitter = steric >= 4 ? ((idx % 2 === 0 ? 1 : -1) * 0.45) : ((idx % 3 - 1) * 0.18);
+    return {
+      x: (a.x - cx2d) * 0.016,
+      y: (a.y - cy2d) * 0.016,
+      z: zJitter
+    };
+  });
+
+  // 4. 共有結合半径に基づく結合長保持 ＋ 非結合原子間のVSEPR立体反発緩和
+  const targetLengths = modelBonds.map(b => {
+    const r1 = (QUANTUM_ELEMENT_SPECS[atoms[b.from].type] || { covalentRadius: 75 }).covalentRadius;
+    const r2 = (QUANTUM_ELEMENT_SPECS[atoms[b.to].type] || { covalentRadius: 75 }).covalentRadius;
+    return ((r1 + r2) - (b.order - 1) * 12) * 0.0095;
+  });
+
+  for (let step = 0; step < 40; step++) {
+    const forces = Array.from({ length: n }, () => ({ x: 0, y: 0, z: 0 }));
+
+    // 結合バネ力（目標結合長へ収束）
+    modelBonds.forEach((b, bIdx) => {
+      const p1 = coords[b.from];
+      const p2 = coords[b.to];
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const dz = p2.z - p1.z;
+      const dist = Math.hypot(dx, dy, dz) || 0.001;
+      const diff = (dist - targetLengths[bIdx]) * 0.28;
+      const fx = (dx / dist) * diff;
+      const fy = (dy / dist) * diff;
+      const fz = (dz / dist) * diff;
+      forces[b.from].x += fx; forces[b.from].y += fy; forces[b.from].z += fz;
+      forces[b.to].x -= fx;   forces[b.to].y -= fy;   forces[b.to].z -= fz;
+    });
+
+    // 全原子ペア間の立体反発力（結合角の確保と重なり防止）
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const p1 = coords[i];
+        const p2 = coords[j];
+        let dx = p2.x - p1.x;
+        let dy = p2.y - p1.y;
+        let dz = p2.z - p1.z;
+        const dist = Math.hypot(dx, dy, dz) || 0.001;
+        if (dist < 2.2) {
+          const rep = 0.09 / (dist * dist + 0.15);
+          const fx = (dx / dist) * rep;
+          const fy = (dy / dist) * rep;
+          const fz = (dz / dist) * rep;
+          forces[i].x -= fx; forces[i].y -= fy; forces[i].z -= fz;
+          forces[j].x += fx; forces[j].y += fy; forces[j].z += fz;
+        }
+      }
+    }
+
+    for (let i = 0; i < n; i++) {
+      coords[i].x += forces[i].x;
+      coords[i].y += forces[i].y;
+      coords[i].z += forces[i].z;
+    }
+  }
+
+  // 重心を原点(0, 0, 0)へ正規化
+  const gx = coords.reduce((s, c) => s + c.x, 0) / n;
+  const gy = coords.reduce((s, c) => s + c.y, 0) / n;
+  const gz = coords.reduce((s, c) => s + c.z, 0) / n;
+
+  const modelAtoms = atoms.map((a, i) => ({
+    type: a.type,
+    x: Number((coords[i].x - gx).toFixed(3)),
+    y: Number((coords[i].y - gy).toFixed(3)),
+    z: Number((coords[i].z - gz).toFixed(3))
+  }));
+
+const stability = analyzeBondStability(atoms, bonds);
+  let dynamicDesc = "";
+  if (stability.tier === "TRANSIENT") {
+    dynamicDesc = `既知アーカイブに該当記録はなく、内部に極めて脆い ${stability.weakestLabel} 結合（${stability.weakestBde} kJ/mol）を抱えている。現実の自然界では室温の熱運動すら耐えられず、極低温下や上層大気で一瞬だけ観測される過渡的な超不安定分子だ。`;
+  } else if (stability.tier === "FRAGILE") {
+    dynamicDesc = `既知アーカイブには未登録の分子だ。原子価は閉じているが、最も弱い ${stability.weakestLabel} 結合（${stability.weakestBde} kJ/mol）が熱や光による開裂のボトルネックとなり、反応性の高い不安定種として振る舞う。`;
+  } else if (stability.tier === "RIGID") {
+    dynamicDesc = `既知アーカイブには未登録だが、全結合が ${stability.weakestBde} kJ/mol 以上の強固な共有結合で組まれている。熱力学的なエネルギーの谷が深く、一度生成されれば安定して存在し得る頑丈な構造だ。`;
+  } else {
+    dynamicDesc = `既知アーカイブには未登録だが、全原子の価電子軌道は破綻なく閉殻している。最弱の ${stability.weakestLabel} 結合（${stability.weakestBde} kJ/mol）を起点に反応し得る、自然界の化学空間に潜む名もなき分子だ。`;
+  }
+
+  return {
+    id: `UNLISTED_${formula}`,
+    formula,
+    name: `未登録の安定分子 (${formula})`,
+    geometry: stability.hasThreeRing
+      ? "動的VSEPR立体展開構造（三員環角度ひずみ内在）"
+      : "動的VSEPR立体自動展開構造",
+    signature,
+    desc: dynamicDesc,
+    model3D: {
+      atoms: modelAtoms,
+      bonds: modelBonds
+    }
+  };
+}
+
+// 分子内の最弱結合（ボトルネック）・最強結合・環ひずみ・熱的安定度ランクを解析
+function analyzeBondStability(atoms, bonds) {
+  const BDE_TABLE = {
+    "H-H:1": 436,
+    "C-H:1": 413, "H-N:1": 391, "H-O:1": 463, "F-H:1": 567,
+    "H-P:1": 322, "H-S:1": 347, "Cl-H:1": 431, "Br-H:1": 366,
+    "C-C:1": 348, "C-N:1": 305, "C-O:1": 358, "C-F:1": 485,
+    "C-P:1": 264, "C-S:1": 272, "C-Cl:1": 339, "Br-C:1": 285,
+    "N-N:1": 163, "N-O:1": 201, "F-N:1": 272, "N-P:1": 209,
+    "N-S:1": 205, "Cl-N:1": 200, "Br-N:1": 163,
+    "O-O:1": 146, "F-O:1": 190, "O-P:1": 335, "O-S:1": 265,
+    "Cl-O:1": 205, "Br-O:1": 201,
+    "F-F:1": 159, "F-P:1": 490, "F-S:1": 327, "Cl-F:1": 253, "Br-F:1": 249,
+    "P-P:1": 201, "P-S:1": 230, "Cl-P:1": 326, "Br-P:1": 264,
+    "S-S:1": 266, "Cl-S:1": 253, "Br-S:1": 218,
+    "Cl-Cl:1": 242, "Br-Cl:1": 218, "Br-Br:1": 193,
+    "C-C:2": 614, "C-N:2": 615, "C-O:2": 745, "C-S:2": 573,
+    "N-N:2": 418, "N-O:2": 607, "O-O:2": 498, "O-P:2": 544,
+    "P-S:2": 335, "O-S:2": 523,
+    "C-C:3": 839, "C-N:3": 891, "N-N:3": 945
+  };
+
+  const atomMap = new Map();
+  atoms.forEach(a => atomMap.set(a.id, a));
+
+  let weakest = { label: "-", bde: Infinity };
+  let strongest = { label: "-", bde: -Infinity };
+
+  const adjIds = new Map();
+  atoms.forEach(a => adjIds.set(a.id, new Set()));
+
+  bonds.forEach(b => {
+    const a1 = atomMap.get(b.from);
+    const a2 = atomMap.get(b.to);
+    if (!a1 || !a2) return;
+    adjIds.get(a1.id).add(a2.id);
+    adjIds.get(a2.id).add(a1.id);
+
+    const order = b.order || 1;
+    const pair = [a1.type, a2.type].sort();
+    const key = `${pair[0]}-${pair[1]}:${order}`;
+    const bde = BDE_TABLE[key] || (order === 3 ? 820 : order === 2 ? 580 : 260);
+    const sym = order === 3 ? "#" : order === 2 ? "=" : "-";
+    const label = `${a1.type}${sym}${a2.type}`;
+
+    if (bde < weakest.bde) weakest = { label, bde };
+    if (bde > strongest.bde) strongest = { label, bde };
+  });
+
+  if (weakest.bde === Infinity) weakest = { label: "NONE", bde: 0 };
+  if (strongest.bde === -Infinity) strongest = { label: "NONE", bde: 0 };
+
+  // 三員環（角度ひずみ）の検出
+  let hasThreeRing = false;
+  const ids = atoms.map(a => a.id);
+  for (let i = 0; i < ids.length && !hasThreeRing; i++) {
+    const n1 = adjIds.get(ids[i]);
+    for (const id2 of n1) {
+      if (id2 <= ids[i]) continue;
+      const n2 = adjIds.get(id2);
+      for (const id3 of n2) {
+        if (id3 <= id2) continue;
+        if (n1.has(id3)) {
+          hasThreeRing = true;
+          break;
+        }
+      }
+    }
+  }
+
+  let tier = "MODERATE";
+  let tierLabel = "STANDARD（標準的共有結合）";
+  if (weakest.bde > 0 && (weakest.bde <= 205 || (hasThreeRing && weakest.bde < 280))) {
+    tier = "TRANSIENT";
+    tierLabel = "TRANSIENT（極低温・過渡的超不安定種）";
+  } else if (weakest.bde > 0 && (weakest.bde < 270 || hasThreeRing)) {
+    tier = "FRAGILE";
+    tierLabel = "LABILE（熱・光で開裂しやすい不安定種）";
+  } else if (weakest.bde >= 340 && !hasThreeRing) {
+    tier = "RIGID";
+    tierLabel = "RIGID（高耐久・難分解性安定構造）";
+  }
+
+  return {
+    weakestLabel: weakest.label,
+    weakestBde: weakest.bde,
+    strongestLabel: strongest.label,
+    strongestBde: strongest.bde,
+    hasThreeRing,
+    tier,
+    tierLabel
+  };
+}
+
+// ======================================================================
+// 【第5章：グラフィック描画エンジン (2D & 3D Rendering Pipeline)】
+// 5-1. 2D構造式キャンバス描画モジュール
+// 5-2. 3D立体構造ビューア描画モジュール (外部依存ゼロ・Zソート透視投影)
+// ======================================================================
+function render2DCanvas() {
+  const canvas = document.getElementById("canvas-2d");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // 背景グリッド
+  ctx.strokeStyle = "rgba(51, 65, 85, 0.35)";
+  ctx.lineWidth = 1;
+  const pitch = CHEM_ENV.GRID_PITCH;
+  for (let x = 0; x <= w; x += pitch) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y <= h; y += pitch) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  // ドラッグ中の結線ガイド線
+  const ds = chemState.dragState;
+  if (ds.activeAtomId) {
+    const src = chemState.atoms.find(a => a.id === ds.activeAtomId);
+    if (src) {
+      ctx.save();
+      ctx.strokeStyle = "#38bdf8";
+      ctx.setLineDash([5, 5]);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(src.x, src.y);
+      ctx.lineTo(ds.currX, ds.currY);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // 結合線（単結合・二重結合・三重結合）の描画
+  chemState.bonds.forEach(b => {
+    const a1 = chemState.atoms.find(a => a.id === b.from);
+    const a2 = chemState.atoms.find(a => a.id === b.to);
+    if (!a1 || !a2) return;
+
+    const dx = a2.x - a1.x;
+    const dy = a2.y - a1.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 3;
+
+    const offsets = b.order === 1 ? [0] : (b.order === 2 ? [-4.5, 4.5] : [-7, 0, 7]);
+    offsets.forEach(off => {
+      ctx.beginPath();
+      ctx.moveTo(a1.x + nx * off, a1.y + ny * off);
+      ctx.lineTo(a2.x + nx * off, a2.y + ny * off);
+      ctx.stroke();
+    });
+  });
+
+  // 原子ノードの描画（原子価ステータスリング付き）
+  const diagMap = new Map();
+  if (chemState.lastEvaluation && chemState.lastEvaluation.atomDiagnostics) {
+    chemState.lastEvaluation.atomDiagnostics.forEach(d => diagMap.set(d.id, d));
+  }
+
+  chemState.atoms.forEach(atom => {
+    const spec = ELEMENTS[atom.type];
+    const diag = diagMap.get(atom.id);
+
+    // 原子価状態の外周リング
+    ctx.beginPath();
+    ctx.arc(atom.x, atom.y, spec.radius2D + 4, 0, Math.PI * 2);
+    if (!diag || diag.state === "OK") {
+      ctx.fillStyle = "rgba(16, 185, 129, 0.35)";
+    } else if (diag.state === "INCOMPLETE") {
+      ctx.fillStyle = "rgba(245, 158, 11, 0.45)";
+    } else {
+      ctx.fillStyle = "rgba(239, 68, 68, 0.65)";
+    }
+    ctx.fill();
+
+    // 原子本体円
+    ctx.beginPath();
+    ctx.arc(atom.x, atom.y, spec.radius2D, 0, Math.PI * 2);
+    ctx.fillStyle = spec.color;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = spec.strokeColor;
+    ctx.stroke();
+
+    // 元素記号テキスト
+    ctx.fillStyle = spec.textColor;
+    ctx.font = "bold 15px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(spec.symbol, atom.x, atom.y);
+
+  // 残り結合手のインジケータ（未完了時のみ小さく表示）
+    if (diag && diag.state !== "OK") {
+      const rem = diag.maxValence - diag.usedValence;
+      const badgeText = rem > 0 ? `+${rem}` : `${rem}`;
+      ctx.fillStyle = rem > 0 ? "#fbbf24" : "#f87171";
+      ctx.font = "bold 11px monospace";
+      ctx.fillText(badgeText, atom.x + spec.radius2D + 6, atom.y - spec.radius2D - 2);
+    }
+
+    // 選択中またはドラッグ中原子の強調ターゲットマーカー（電子観察OFF時も常時表示）
+    const isSelected = chemState.inspector && chemState.inspector.targetAtomId === atom.id;
+    const isDragging = chemState.dragState && chemState.dragState.activeAtomId === atom.id;
+    if (isSelected || isDragging) {
+      const selR = spec.radius2D + 8;
+      ctx.save();
+      ctx.strokeStyle = isDragging ? "#fbbf24" : "#22d3ee";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.arc(atom.x, atom.y, selR, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 四隅の照準ブラケット
+      ctx.setLineDash([]);
+      ctx.lineWidth = 2;
+      const bLen = 5;
+      const corners = [
+        [-1, -1], [1, -1], [-1, 1], [1, 1]
+      ];
+      corners.forEach(([sx, sy]) => {
+        const cx = atom.x + sx * (selR + 1);
+        const cy = atom.y + sy * (selR + 1);
+        ctx.beginPath();
+        ctx.moveTo(cx - sx * bLen, cy);
+        ctx.lineTo(cx, cy);
+        ctx.lineTo(cx, cy - sy * bLen);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+  });
+}
+
+// 5-2. 3D立体構造ビューア描画モジュール (N体SIM由来回転行列 ＋ Zソート球棒投影)
+function rotateAndProject3D(pt, viewW, viewH) {
+  const cosY = Math.cos(camera3D.rotY);
+  const sinY = Math.sin(camera3D.rotY);
+  const x1 = pt.x * cosY - pt.z * sinY;
+  const z1 = pt.x * sinY + pt.z * cosY;
+
+  const cosX = Math.cos(camera3D.rotX);
+  const sinX = Math.sin(camera3D.rotX);
+  const y2 = pt.y * cosX - z1 * sinX;
+  const z2 = pt.y * sinX + z1 * cosX;
+
+  const dz = z2 + camera3D.orbitRadius;
+  if (dz < 0.2) return { visible: false, depth: dz };
+
+  const scale = camera3D.zoom * (CHEM_ENV.BASE_DISTANCE_3D / dz);
+  return {
+    visible: true,
+    x: viewW / 2 + x1 * scale,
+    y: viewH / 2 + y2 * scale,
+    depth: dz,
+    scale
+  };
+}
+
+
+function render3DViewer() {
+  const canvas = document.getElementById("canvas-3d");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+
+const evalRes = chemState.lastEvaluation;
+  if (!evalRes || evalRes.status !== "STABLE_MATCH" || !evalRes.molecule || !evalRes.molecule.model3D) {
+    render3DViewer.wasActive = false;
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = "rgba(51, 65, 85, 0.25)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 16); ctx.lineTo(w / 2, h - 16);
+    ctx.moveTo(16, h / 2); ctx.lineTo(w - 16, h / 2);
+    ctx.stroke();
+
+    ctx.fillStyle = "#64748b";
+    ctx.font = "13px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("実在分子が完成すると、ここに3D量子電子雲モデルが実体化します", w / 2, h / 2);
+    return;
+  }
+
+  // 待機状態から実体化へ切り替わった初回フレームのみ完全クリアして待機文字の残像を消去
+  if (!render3DViewer.wasActive) {
+    ctx.clearRect(0, 0, w, h);
+    render3DViewer.wasActive = true;
+  }
+
+  // 2D量子インスペクタと統一した残像フェード（連続ミスト表現）
+  ctx.fillStyle = "rgba(2, 6, 23, 0.34)";
+  ctx.fillRect(0, 0, w, h);
+  // 極薄テレメトリ十字軸
+  ctx.strokeStyle = "rgba(56, 189, 248, 0.12)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(w / 2, 16); ctx.lineTo(w / 2, h - 16);
+  ctx.moveTo(16, h / 2); ctx.lineTo(w - 16, h / 2);
+  ctx.stroke();
+
+  const showTele = Boolean(chemState.inspector && chemState.inspector.telemetry3D);
+  const model = evalRes.molecule.model3D;
+  const gauss = () => ((Math.random() + Math.random() + Math.random() + Math.random() - 2) * 1.414);
+
+  const atomCount = model.atoms.length;
+  const netDelta = new Array(atomCount).fill(0);
+  const usedValence = new Array(atomCount).fill(0);
+  const neighborVecs = Array.from({ length: atomCount }, () => []);
+
+  let totalBDE = 0;
+  let maxEnDiff = 0;
+  let dipoleX = 0;
+  let dipoleY = 0;
+  let dipoleZ = 0;
+
+  const bondMetrics = model.bonds.map(b => {
+    const a1 = model.atoms[b.from];
+    const a2 = model.atoms[b.to];
+    if (!a1 || !a2) return { enthalpy: 0, enDiff: 0, shift: 0 };
+
+    const q1 = (typeof QUANTUM_ELEMENT_SPECS !== "undefined" && QUANTUM_ELEMENT_SPECS[a1.type]) || { paulingEN: 2.5 };
+    const q2 = (typeof QUANTUM_ELEMENT_SPECS !== "undefined" && QUANTUM_ELEMENT_SPECS[a2.type]) || { paulingEN: 2.5 };
+    const pairKey = [a1.type, a2.type].sort().join("-") + ":" + b.order;
+    const enthalpy = (typeof BOND_ENTHALPY_TABLE !== "undefined" && BOND_ENTHALPY_TABLE[pairKey]) || 340;
+    totalBDE += enthalpy;
+
+    usedValence[b.from] += b.order;
+    usedValence[b.to] += b.order;
+
+    const vx = a2.x - a1.x;
+    const vy = a2.y - a1.y;
+    const vz = a2.z - a1.z;
+    const vLen = Math.hypot(vx, vy, vz) || 1;
+    neighborVecs[b.from].push({ x: vx / vLen, y: vy / vLen, z: vz / vLen });
+    neighborVecs[b.to].push({ x: -vx / vLen, y: -vy / vLen, z: -vz / vLen });
+
+    const enDiff = q2.paulingEN - q1.paulingEN;
+    const shift = enDiff * 0.14 * b.order;
+    netDelta[b.from] += shift;
+    netDelta[b.to] -= shift;
+    maxEnDiff = Math.max(maxEnDiff, Math.abs(enDiff));
+
+    dipoleX += vx * shift;
+    dipoleY += vy * shift;
+    dipoleZ += vz * shift;
+
+    return { enthalpy, enDiff, shift };
+  });
+
+  const dipoleMag = Math.hypot(dipoleX, dipoleY, dipoleZ);
+  const isPolar = dipoleMag > 0.08;
+
+  // 各原子の3D投影および非共有電子対（ローンペア）の3D方向ベクトル算出
+  const projectedAtoms = model.atoms.map((a, idx) => {
+    const proj = rotateAndProject3D(a, w, h);
+    const qSpec = (typeof QUANTUM_ELEMENT_SPECS !== "undefined" && QUANTUM_ELEMENT_SPECS[a.type]) || { z: 6, valenceElectrons: 4, coreColor: "#64748b" };
+    const ownNonBonding = Math.max(0, qSpec.valenceElectrons - usedValence[idx]);
+    const lonePairs = Math.floor(ownNonBonding / 2);
+
+    const lpTargets = [];
+    if (lonePairs > 0) {
+      let rx = 0, ry = 0, rz = 0;
+      neighborVecs[idx].forEach(v => { rx -= v.x; ry -= v.y; rz -= v.z; });
+      let rLen = Math.hypot(rx, ry, rz);
+      if (rLen < 0.05) {
+        rx = 0; ry = 1; rz = 0; rLen = 1;
+      }
+      rx /= rLen; ry /= rLen; rz /= rLen;
+
+      if (lonePairs === 1) {
+        const pt = rotateAndProject3D({ x: a.x + rx * 0.72, y: a.y + ry * 0.72, z: a.z + rz * 0.72 }, w, h);
+        lpTargets.push(pt);
+      } else {
+        const ref = neighborVecs[idx][0] || { x: 1, y: 0, z: 0 };
+        let px = ry * ref.z - rz * ref.y;
+        let py = rz * ref.x - rx * ref.z;
+        let pz = rx * ref.y - ry * ref.x;
+        let pLen = Math.hypot(px, py, pz);
+        if (pLen < 0.05) { px = 0; py = 0; pz = 1; pLen = 1; }
+        px /= pLen; py /= pLen; pz /= pLen;
+
+        const cosA = 0.62;
+        const sinA = 0.78;
+        [1, -1].forEach(sign => {
+          const dx = (rx * cosA + px * sinA * sign) * 0.72;
+          const dy = (ry * cosA + py * sinA * sign) * 0.72;
+          const dz = (rz * cosA + pz * sinA * sign) * 0.72;
+          lpTargets.push(rotateAndProject3D({ x: a.x + dx, y: a.y + dy, z: a.z + dz }, w, h));
+        });
+      }
+    }
+
+    return { idx, type: a.type, delta: netDelta[idx], qSpec, lpTargets, proj };
+  });
+
+  // Zソート用の描画リスト（棒を排し、量子電子雲と原子核コアを奥行き順に統合）
+  const drawList = [];
+
+  projectedAtoms.forEach(pa => {
+    if (pa.proj && pa.proj.visible) {
+      drawList.push({
+        kind: "atom",
+        depth: pa.proj.depth,
+        data: pa
+      });
+    }
+  });
+
+  model.bonds.forEach((b, bIdx) => {
+    const pA = projectedAtoms[b.from];
+    const pB = projectedAtoms[b.to];
+    if (pA && pB && pA.proj && pB.proj && pA.proj.visible && pB.proj.visible) {
+      const midDepth = (pA.proj.depth + pB.proj.depth) * 0.5;
+      drawList.push({
+        kind: "bondCloud",
+        depth: midDepth,
+        data: {
+          pA: pA.proj,
+          pB: pB.proj,
+          order: b.order,
+          metric: bondMetrics[bIdx] || { enthalpy: 340, enDiff: 0, shift: 0 }
+        }
+      });
+    }
+  });
+
+  drawList.sort((a, b) => b.depth - a.depth);
+
+  drawList.forEach(item => {
+   if (item.kind === "bondCloud") {
+      // 棒の代わりに2Dインスペクタと同一のガウス減衰・共有電子対ミストを描画（結合強度連動）
+      const { pA, pB, order, metric } = item.data;
+      const dx = pB.x - pA.x;
+      const dy = pB.y - pA.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+      const avgScale = (pA.scale + pB.scale) * 0.5;
+
+      const bde = metric.enthalpy || 340;
+      const isWeakBond = bde <= 205;
+      const isFragileBond = bde > 205 && bde < 270;
+      const isRigidBond = bde >= 400;
+
+      const densityFactor = isWeakBond ? 0.42 : (isFragileBond ? 0.72 : (isRigidBond ? 1.32 : 1.0));
+      const spreadFactor = isWeakBond ? 1.28 : (isFragileBond ? 1.12 : (isRigidBond ? 0.86 : 1.0));
+      const flickerPulse = isWeakBond ? (0.55 + 0.45 * Math.sin(performance.now() * 0.012)) : 1.0;
+
+      const dotCount = Math.min(260, Math.max(24, Math.round(95 * order * densityFactor)));
+      const latSigma = (order === 1 ? 0.068 : 0.125) * avgScale * spreadFactor;
+      const polarPower = Math.abs(metric.enDiff) < 0.08 ? 1.0 : (metric.enDiff > 0 ? 0.76 : 1.32);
+
+      for (let i = 0; i < dotCount; i++) {
+        const t = Math.pow(Math.random(), polarPower);
+        const lateral = gauss() * latSigma;
+        const px = pA.x + dx * t + nx * lateral;
+        const py = pA.y + dy * t + ny * lateral;
+
+        const endFade = Math.sin(Math.PI * (0.12 + t * 0.76));
+        const latFade = Math.exp(-(lateral * lateral) / (2 * latSigma * latSigma));
+        const isPiRegion = order > 1 && Math.abs(lateral) > latSigma * 0.62;
+
+        ctx.fillStyle = isPiRegion ? "#a855f7" : "#22d3ee";
+        ctx.globalAlpha = endFade * latFade * (0.35 + Math.random() * 0.65) * flickerPulse;
+        const dotSize = isRigidBond ? 1.48 : (isWeakBond ? 1.15 : 1.35);
+        ctx.fillRect(px, py, dotSize, dotSize);
+      }
+      ctx.globalAlpha = 1.0;
+
+      // テレメトリON時: 結合エネルギー（強度別カラー）と電子偏り方向タグ
+      if (showTele) {
+        const midX = (pA.x + pB.x) * 0.5;
+        const midY = (pA.y + pB.y) * 0.5;
+        const polMark = Math.abs(metric.enDiff) < 0.08 ? "=" : (metric.enDiff > 0 ? ">" : "<");
+        ctx.font = "9px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "rgba(2, 6, 23, 0.78)";
+        ctx.fillRect(midX - 20, midY - 6, 40, 12);
+        if (isWeakBond) {
+          ctx.fillStyle = "#f87171";
+        } else if (isFragileBond) {
+          ctx.fillStyle = "#fbbf24";
+        } else if (order > 1) {
+          ctx.fillStyle = "#e879f9";
+        } else if (isRigidBond) {
+          ctx.fillStyle = "#34d399";
+        } else {
+          ctx.fillStyle = "#67e8f9";
+        }
+        ctx.fillText(`${metric.enthalpy}${polMark}`, midX, midY);
+      }
+    } else {
+
+
+      const { type, delta, qSpec, lpTargets, proj } = item.data;
+      const spec = ELEMENTS[type] || { symbol: type };
+      const coreR = Math.max(3.8, (qSpec.z === 1 ? 0.065 : 0.095) * proj.scale);
+
+      // 1. テレメトリON時: 電子密度偏り(delta+ / delta-)の極薄量子ハロー
+      if (showTele && Math.abs(delta) > 0.02) {
+        const intensity = Math.min(1, Math.abs(delta) * 2.2);
+        const haloR = coreR * (3.2 + intensity * 1.4);
+        const haloGrad = ctx.createRadialGradient(proj.x, proj.y, coreR, proj.x, proj.y, haloR);
+        if (delta < 0) {
+          haloGrad.addColorStop(0, `rgba(245, 158, 11, ${0.32 * intensity})`);
+          haloGrad.addColorStop(1, "rgba(245, 158, 11, 0)");
+        } else {
+          haloGrad.addColorStop(0, `rgba(56, 189, 248, ${0.32 * intensity})`);
+          haloGrad.addColorStop(1, "rgba(56, 189, 248, 0)");
+        }
+        ctx.beginPath();
+        ctx.arc(proj.x, proj.y, haloR, 0, Math.PI * 2);
+        ctx.fillStyle = haloGrad;
+        ctx.fill();
+      }
+
+      // 2. 内殻(1s)高密度コア・ミスト（C, N, O）
+      if (qSpec.z > 1) {
+        const innerSpread = coreR * 1.65;
+        for (let i = 0; i < 36; i++) {
+          const r = Math.abs(gauss()) * innerSpread;
+          const theta = Math.random() * Math.PI * 2;
+          const fade = Math.exp(-r / (innerSpread * 1.3));
+          ctx.fillStyle = "#94a3b8";
+          ctx.globalAlpha = fade * 0.72;
+          ctx.fillRect(proj.x + Math.cos(theta) * r, proj.y + Math.sin(theta) * r, 1.2, 1.2);
+        }
+      }
+
+      // 3. 非共有電子対（ローンペア）の3Dガウス減衰アンバーミスト
+      lpTargets.forEach(lpPt => {
+        if (!lpPt || !lpPt.visible) return;
+        const ldx = lpPt.x - proj.x;
+        const ldy = lpPt.y - proj.y;
+        const lLen = Math.hypot(ldx, ldy) || 1;
+        const lAngle = Math.atan2(ldy, ldx);
+
+        for (let i = 0; i < 60; i++) {
+          const dist = coreR * 1.1 + Math.abs(gauss()) * (lLen * 0.58);
+          const angSpread = gauss() * 0.34;
+          const px = proj.x + Math.cos(lAngle + angSpread) * dist;
+          const py = proj.y + Math.sin(lAngle + angSpread) * dist;
+          const fade = Math.exp(-Math.max(0, dist - coreR) / (lLen * 0.85)) * Math.exp(-(angSpread * angSpread) / 0.2);
+
+          ctx.fillStyle = "#fbbf24";
+          ctx.globalAlpha = fade * (0.3 + Math.random() * 0.65);
+          ctx.fillRect(px, py, 1.25, 1.25);
+        }
+      });
+
+      ctx.globalAlpha = 1.0;
+
+      // 4. 原子核コア点描画（2Dインスペクタと統一されたコアスタイル）
+      ctx.fillStyle = qSpec.coreColor;
+      ctx.beginPath();
+      ctx.arc(proj.x, proj.y, coreR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // 元素記号および部分電荷(delta)タグ
+      ctx.font = `bold ${Math.max(10, Math.round(coreR * 1.55))}px monospace`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillText(spec.symbol, proj.x, proj.y - coreR - 8);
+
+      if (showTele) {
+        const dSign = delta > 0.01 ? "+" : "";
+        const tagText = Math.abs(delta) <= 0.01 ? "d0.00" : `d${dSign}${delta.toFixed(2)}`;
+        ctx.font = "9px monospace";
+        ctx.fillStyle = delta < -0.01 ? "#fbbf24" : (delta > 0.01 ? "#38bdf8" : "#94a3b8");
+        ctx.fillText(tagText, proj.x, proj.y + coreR + 9);
+      }
+    }
+  });
+
+// 3D空間左上: 画面幅に応じたテレメトリHUD（狭い画面では分子に被らない2行コンパクト表示）
+  if (showTele) {
+    const stab = (typeof analyzeBondStability === "function")
+      ? analyzeBondStability(chemState.atoms, chemState.bonds)
+      : { weakestLabel: "-", weakestBde: 0, strongestLabel: "-", strongestBde: 0, tier: "MODERATE", tierLabel: "STANDARD" };
+
+    const tierColorMap = {
+      TRANSIENT: "#f87171",
+      FRAGILE: "#fbbf24",
+      MODERATE: "#38bdf8",
+      RIGID: "#34d399"
+    };
+    const weakColor = stab.weakestBde <= 205 ? "#f87171" : (stab.weakestBde < 270 ? "#fbbf24" : "#38bdf8");
+    const tierColor = tierColorMap[stab.tier] || "#94a3b8";
+
+    ctx.save();
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    if (w < 520) {
+      ctx.font = "9.5px monospace";
+      ctx.fillStyle = "#34d399";
+      ctx.fillText(`BDE:-${totalBDE}kJ | ${isPolar ? `POLAR(${dipoleMag.toFixed(2)})` : "NON-POLAR"}`, 8, 6);
+      ctx.fillStyle = weakColor;
+      ctx.fillText(`WEAK:${stab.weakestLabel}(${stab.weakestBde}) [${stab.tier}]`, 8, 19);
+    } else {
+      ctx.font = "10.5px monospace";
+      ctx.fillStyle = "#22d3ee";
+      ctx.fillText(`[3D QUANTUM CLOUD TELEMETRY: ACTIVE]`, 10, 10);
+      ctx.fillStyle = "#34d399";
+      ctx.fillText(`TOTAL BDE     : -${totalBDE} kJ/mol`, 10, 24);
+      ctx.fillStyle = weakColor;
+      ctx.fillText(`WEAKEST BOND  : ${stab.weakestLabel} (${stab.weakestBde} kJ/mol)`, 10, 38);
+      ctx.fillStyle = "#34d399";
+      ctx.fillText(`STRONGEST BOND: ${stab.strongestLabel} (${stab.strongestBde} kJ/mol)`, 10, 52);
+      ctx.fillStyle = tierColor;
+      ctx.fillText(`STABILITY TIER: ${stab.tierLabel}`, 10, 66);
+      ctx.fillStyle = isPolar ? "#fbbf24" : "#94a3b8";
+      ctx.fillText(`POLARITY      : ${isPolar ? `POLAR (|u|=${dipoleMag.toFixed(2)} D-eq)` : "NON-POLAR (Symmetric)"}`, 10, 80);
+      ctx.fillStyle = "#64748b";
+      ctx.fillText(`CLOUD KEY     : [CYAN:sigma / PURPLE:pi / AMBER:LonePair]`, 10, 94);
+    }
+    ctx.restore();
+  }
+}
+
+
+
+// ======================================================================
+// 【第6章：UIレンダラー ＆ パネル同期モジュール (UI & Inspectors)】
+// リアルタイム判定ステータス表示、発見済みカウンター、解説同期
+// ======================================================================
+function syncInspectorUI() {
+  const res = chemState.lastEvaluation;
+  const badgeEl = document.getElementById("status-badge");
+  const msgEl = document.getElementById("status-message");
+  const detailEl = document.getElementById("molecule-detail");
+  const countEl = document.getElementById("atom-count-label");
+  const discEl = document.getElementById("discovery-counter");
+  const drillBanner = document.getElementById("drill-banner");
+
+  if (countEl) countEl.textContent = `原子数: ${chemState.atoms.length} / ${CHEM_ENV.MAX_ATOMS}`;
+  if (discEl) discEl.textContent = `発見済み分子: ${chemState.discoveredIds.size} / ${MOLECULE_DB.length}`;
+
+  if (drillBanner) {
+    if (chemState.drill.active && chemState.drill.currentMission) {
+      const m = chemState.drill.currentMission;
+      const isSolved = res && res.status === "STABLE_MATCH" && res.molecule && res.molecule.id === m.targetId;
+      drillBanner.style.display = "block";
+      if (chemState.drill.showingAnswer) {
+        drillBanner.style.borderLeftColor = "#f59e0b";
+        drillBanner.textContent = `[DRILL Lv.${m.level}/5 | 模範解答表示中] 目標: ${m.targetMolecule.name} (${m.targetMolecule.formula})`;
+      } else if (isSolved) {
+        drillBanner.style.borderLeftColor = "#10b981";
+        drillBanner.textContent = `[MISSION CLEAR - Lv.${m.level}/5] 目標達成: ${m.targetMolecule.name} を正確に構築しました。`;
+      } else {
+        drillBanner.style.borderLeftColor = "#38bdf8";
+        drillBanner.textContent = `[DRILL Lv.${m.level}/5 | ${m.modeLabel}] ${m.symptomHint}`;
+      }
+    } else {
+      drillBanner.style.display = "none";
+    }
+  }
+
+  if (!res) return;
+  if (badgeEl) {
+    badgeEl.textContent = res.status;
+    badgeEl.className = res.status;
+  }
+  if (msgEl) msgEl.textContent = res.message;
+
+if (detailEl) {
+    if (res.status === "STABLE_MATCH" && res.molecule) {
+      detailEl.textContent = `立体形状: ${res.molecule.geometry} | ${res.molecule.desc}`;
+    } else {
+      detailEl.textContent = "立体構造情報: すべての原子の手の数を過不足なく繋ぐと3D立体モデルが生成されます。";
+    }
+  }
+
+  updateQuantumInspectorUI();
+}
+
+function refreshSimulation() {  chemState.lastEvaluation = evaluateMoleculeState();
+  syncInspectorUI();
+  render2DCanvas();
+  render3DViewer();
+}
+
+// ======================================================================
+// 【第7章：ユーザー操作イベント ＆ アプリケーション制御 (Interaction & Loop)】
+// タッチ＆マウス統合(Pointer Events)、2D配置/結線/移動/切替、3D回転/ピンチズーム
+// ======================================================================
+function findAtomAt(x, y) {
+  for (let i = chemState.atoms.length - 1; i >= 0; i--) {
+    const a = chemState.atoms[i];
+    if (Math.hypot(a.x - x, a.y - y) <= CHEM_ENV.HIT_RADIUS_ATOM) {
+      return a;
+    }
+  }
+  return null;
+}
+
+function pointToSegmentDist(px, py, x1, y1, x2, y2) {
+  const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+  if (l2 === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+}
+
+function findBondAt(x, y) {
+  for (let i = chemState.bonds.length - 1; i >= 0; i--) {
+    const b = chemState.bonds[i];
+    const a1 = chemState.atoms.find(a => a.id === b.from);
+    const a2 = chemState.atoms.find(a => a.id === b.to);
+    if (!a1 || !a2) continue;
+    if (pointToSegmentDist(x, y, a1.x, a1.y, a2.x, a2.y) <= CHEM_ENV.HIT_DIST_BOND) {
+      return b;
+    }
+  }
+  return null;
+}
+
+function setup2DInteractions() {
+  const canvas = document.getElementById("canvas-2d");
+  const viewport = document.getElementById("canvas-2d-viewport");
+  if (!canvas) return;
+
+  const panState = {
+    active: false,
+    startClientX: 0,
+    startClientY: 0,
+    startScrollLeft: 0,
+    startScrollTop: 0,
+    hasPanned: false
+  };
+
+  const getLocalPos = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  canvas.addEventListener("pointerdown", (e) => {
+    const pos = getLocalPos(e);
+    const hitAtom = findAtomAt(pos.x, pos.y);
+    if (hitAtom) {
+      chemState.inspector.targetAtomId = hitAtom.id;
+      updateQuantumInspectorUI();
+      render2DCanvas();
+    }
+    canvas.setPointerCapture(e.pointerId);
+
+    const isLockedAnswer = chemState.drill.active && chemState.drill.showingAnswer;
+
+    if (!isLockedAnswer && chemState.isEraseMode) {
+      if (hitAtom) {
+        removeAtom(hitAtom.id);
+        refreshSimulation();
+        return;
+      }
+      const hitBond = findBondAt(pos.x, pos.y);
+      if (hitBond) {
+        saveSnapshot();
+        chemState.bonds = chemState.bonds.filter(b => b !== hitBond);
+        refreshSimulation();
+        return;
+      }
+    }
+
+    if (!isLockedAnswer && hitAtom) {
+      chemState.dragState = {
+        activeAtomId: hitAtom.id,
+        startX: pos.x,
+        startY: pos.y,
+        currX: pos.x,
+        currY: pos.y,
+        hasMoved: false
+      };
+      return;
+    }
+
+    const hitBond = findBondAt(pos.x, pos.y);
+    if (!isLockedAnswer && hitBond) {
+      cycleBondByInstance(hitBond);
+      refreshSimulation();
+      return;
+    }
+
+    // 空白タッチ開始: ドラッグならパズル面スクロール、短タップなら原子配置
+    panState.active = true;
+    panState.startClientX = e.clientX;
+    panState.startClientY = e.clientY;
+    panState.startScrollLeft = viewport ? viewport.scrollLeft : 0;
+    panState.startScrollTop = viewport ? viewport.scrollTop : 0;
+    panState.hasPanned = false;
+  });
+
+  canvas.addEventListener("pointermove", (e) => {
+    const ds = chemState.dragState;
+    if (ds.activeAtomId) {
+      const pos = getLocalPos(e);
+      ds.currX = pos.x;
+      ds.currY = pos.y;
+      if (Math.hypot(pos.x - ds.startX, pos.y - ds.startY) > CHEM_ENV.DRAG_THRESHOLD) {
+        ds.hasMoved = true;
+      }
+      render2DCanvas();
+      return;
+    }
+
+    if (panState.active && viewport) {
+      const dx = e.clientX - panState.startClientX;
+      const dy = e.clientY - panState.startClientY;
+      if (!panState.hasPanned && Math.hypot(dx, dy) > CHEM_ENV.DRAG_THRESHOLD) {
+        panState.hasPanned = true;
+      }
+      if (panState.hasPanned) {
+        viewport.scrollLeft = panState.startScrollLeft - dx;
+        viewport.scrollTop = panState.startScrollTop - dy;
+      }
+    }
+  });
+
+  const endPointer = (e) => {
+    const ds = chemState.dragState;
+    if (ds.activeAtomId) {
+      const pos = getLocalPos(e);
+      const srcAtom = chemState.atoms.find(a => a.id === ds.activeAtomId);
+
+      if (srcAtom && ds.hasMoved) {
+        const targetAtom = findAtomAt(pos.x, pos.y);
+        if (targetAtom && targetAtom.id !== srcAtom.id) {
+          addOrCycleBond(srcAtom.id, targetAtom.id);
+        } else {
+          saveSnapshot();
+          const pad = CHEM_ENV.GRID_PITCH;
+          srcAtom.x = snapToGrid(Math.max(pad, Math.min(canvas.width - pad, pos.x)));
+          srcAtom.y = snapToGrid(Math.max(pad, Math.min(canvas.height - pad, pos.y)));
+        }
+      }
+
+      chemState.dragState.activeAtomId = null;
+      chemState.dragState.hasMoved = false;
+      refreshSimulation();
+      return;
+    }
+
+    if (panState.active) {
+      const wasTap = !panState.hasPanned;
+      panState.active = false;
+      panState.hasPanned = false;
+
+      if (wasTap && !chemState.isEraseMode && !chemState.drill.active) {
+        const pos = getLocalPos(e);
+        addAtom(chemState.selectedElement, pos.x, pos.y, true);
+        refreshSimulation();
+      }
+    }
+  };
+
+  canvas.addEventListener("pointerup", endPointer);
+  canvas.addEventListener("pointercancel", endPointer);
+}
+function setup3DInteractions() {
+  const canvas = document.getElementById("canvas-3d");
+  if (!canvas) return;
+
+  const activePointers = new Map();
+  let lastPinchDist = null;
+
+canvas.addEventListener("pointerdown", (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    camera3D.isDragging = true;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointers.size === 2) {
+      const pts = Array.from(activePointers.values());
+      lastPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    }
+  });
+
+
+  canvas.addEventListener("pointermove", (e) => {
+    if (!activePointers.has(e.pointerId)) return;
+    const prev = activePointers.get(e.pointerId);
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 1) {
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      camera3D.rotY += dx * CHEM_ENV.ROTATE_SENSITIVITY;
+      camera3D.rotX += dy * CHEM_ENV.ROTATE_SENSITIVITY;
+
+      const limit = Math.PI / 2 - 0.01;
+      camera3D.rotX = Math.max(-limit, Math.min(limit, camera3D.rotX));
+      const PI2 = Math.PI * 2;
+      camera3D.rotY = (camera3D.rotY % PI2 + PI2) % PI2;
+      render3DViewer();
+    } else if (activePointers.size === 2) {
+      const pts = Array.from(activePointers.values());
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (lastPinchDist && dist > 0) {
+        camera3D.zoom = Math.max(0.4, Math.min(2.5, camera3D.zoom * (dist / lastPinchDist)));
+        const slider = document.getElementById("zoom-slider");
+        if (slider) slider.value = camera3D.zoom.toFixed(2);
+        render3DViewer();
+      }
+      lastPinchDist = dist;
+    }
+  });
+
+const endPointer = (e) => {
+    activePointers.delete(e.pointerId);
+    if (activePointers.size === 0) camera3D.isDragging = false;
+    if (activePointers.size < 2) lastPinchDist = null;
+  };
+
+  canvas.addEventListener("pointerup", endPointer);
+  canvas.addEventListener("pointercancel", endPointer);
+
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    camera3D.zoom *= (e.deltaY > 0 ? 0.92 : 1.08);
+    camera3D.zoom = Math.max(0.4, Math.min(2.5, camera3D.zoom));
+    const slider = document.getElementById("zoom-slider");
+    if (slider) slider.value = camera3D.zoom.toFixed(2);
+    render3DViewer();
+  }, { passive: false });
+}
+
+function ensureQuantumInspectorHUD() {
+  const canvas2d = document.getElementById("canvas-2d");
+  const host = document.getElementById("puzzle-stage") || ((canvas2d && canvas2d.parentElement) ? canvas2d.parentElement : document.body);
+  if (host !== document.body && getComputedStyle(host).position === "static") {
+    host.style.position = "relative";
+  }
+  let hud = document.getElementById("quantum-inspector-hud");
+  if (!hud) {
+    hud = document.createElement("div");
+    hud.id = "quantum-inspector-hud";
+    hud.innerHTML = `
+      <div id="qi-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(34,211,238,0.35); padding-bottom:4px; margin-bottom:6px; color:#22d3ee; font-weight:bold;">
+        <span id="qi-target-title">TARGET: NONE [STANDBY]</span>
+        <span id="qi-mode-tag" style="font-size:10px; color:#34d399; margin-left:10px;">[CLOUD: LIVE]</span>
+      </div>
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <div style="flex-shrink:0; text-align:center;">
+          <canvas id="quantum-cloud-canvas" width="116" height="116" style="border:1px solid rgba(34,211,238,0.4); background:#020617 !important; display:block;"></canvas>
+          <div style="font-size:9px; color:#64748b; margin-top:2px;">MONTE-CARLO ORBITAL</div>
+        </div>
+        <div id="qi-basic-info" style="min-width:190px; color:#a7f3d0;"></div>
+      </div>
+      <div id="qi-deep-info" style="display:none; margin-top:8px; padding-top:6px; border-top:1px dashed rgba(34,211,238,0.4); color:#e2e8f0; max-height:240px; overflow-y:auto;"></div>
+    `;
+  }
+
+  hud.style.cssText = [
+    host !== document.body ? "position: absolute" : "position: fixed",
+    "right: 12px",
+    host !== document.body ? "bottom: 12px" : "bottom: 54px",
+    "z-index: 40",
+    "background: rgba(2, 6, 23, 0.94)",
+    "border: 1px solid #22d3ee",
+    "box-shadow: 0 0 14px rgba(34, 211, 238, 0.25)",
+    "color: #34d399",
+    "font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+    "font-size: 11px",
+    "line-height: 1.45",
+    "padding: 8px 10px",
+    "border-radius: 4px",
+    "max-width: calc(100% - 24px)",
+    "pointer-events: auto"
+  ].join(";");
+
+  if (hud.parentElement !== host) {
+    host.appendChild(hud);
+  }
+  startQuantumCloudLoop();
+}
+
+function updateQuantumInspectorUI() {
+  ensureQuantumInspectorHUD();
+  const hud = document.getElementById("quantum-inspector-hud");
+  if (!hud) return;
+
+  hud.style.display = chemState.inspector.visible ? "block" : "none";
+  if (!chemState.inspector.visible) return;
+
+  let targetAtom = chemState.atoms.find(a => a.id === chemState.inspector.targetAtomId);
+  if (!targetAtom && chemState.atoms.length > 0) {
+    targetAtom = chemState.atoms[0];
+    chemState.inspector.targetAtomId = targetAtom.id;
+  }
+
+  const titleEl = document.getElementById("qi-target-title");
+  const basicEl = document.getElementById("qi-basic-info");
+  const deepEl = document.getElementById("qi-deep-info");
+
+  if (!targetAtom) {
+    if (titleEl) titleEl.textContent = "TARGET: NONE [WAITING]";
+    if (basicEl) basicEl.innerHTML = "<div>STATUS: 原子を配置またはタップしてロックオン</div>";
+    if (deepEl) deepEl.style.display = "none";
+    return;
+  }
+
+  const q = analyzeAtomQuantumState(targetAtom);
+  const stateTag = q.isBonded ? "BONDED" : "ISOLATED";
+  if (titleEl) {
+    titleEl.textContent = `TARGET: ${targetAtom.id} [${q.spec.enName} / ${stateTag}]`;
+  }
+
+  const handBar = "#".repeat(Math.min(q.usedValence, q.maxValence)) + "-".repeat(Math.max(0, q.maxValence - q.usedValence));
+  const deltaSign = q.deltaCharge > 0.01 ? "+" : "";
+
+  if (basicEl) {
+    basicEl.innerHTML = `
+      <div style="color:#22d3ee;">Z=${q.spec.z} | ${q.stabilityLabel}</div>
+      <div>HANDS : [${handBar}] (${q.usedValence}/${q.maxValence})</div>
+      <div>OCTET : ${q.spec.valenceElectrons}/${q.spec.targetOctet} -> <span style="color:#38bdf8; font-weight:bold;">${q.totalShellElectrons}/${q.spec.targetOctet} e-</span></div>
+      <div>PHASE : <span style="color:#94a3b8;">ISOLATED</span> -> <span style="color:#34d399;">${q.hybridization}</span></div>
+      <div>CHARGE: 0.00 -> <span style="color:#fbbf24;">delta ${deltaSign}${q.deltaCharge.toFixed(2)}</span> (FC:${q.formalCharge >= 0 ? "+" + q.formalCharge : q.formalCharge})</div>
+    `;
+  }
+
+  if (deepEl) {
+    if (!chemState.inspector.deepSpec) {
+      deepEl.style.display = "none";
+    } else {
+      deepEl.style.display = "block";
+      const linkLines = q.neighbors.length > 0
+        ? q.neighbors.map(n => `LINK -> ${n.id}(${n.type}) [ORDER:${n.order} | ${n.bondDistPm}pm | -${n.enthalpy}kJ/mol]`).join("<br>")
+        : "LINK -> NONE (FREE ATOMIC STATE)";
+
+      deepEl.innerHTML = `
+        <div style="color:#22d3ee; font-weight:bold; margin-bottom:3px;">[QUANTUM & STATE TRANSITION MATRIX: BEFORE -> AFTER]</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; font-size:10.5px;">
+          <div><span style="color:#64748b;">CONFIG(PRE):</span> ${q.spec.baseConfig}</div>
+          <div><span style="color:#38bdf8;">CONFIG(POST):</span> ${q.bondedConfig}</div>
+          <div><span style="color:#64748b;">VSEPR(PRE):</span> AX0 Spherical</div>
+          <div><span style="color:#38bdf8;">VSEPR(POST):</span> ${q.vseprCode}</div>
+          <div><span style="color:#64748b;">ANGLE(PRE):</span> Isotropic</div>
+          <div><span style="color:#38bdf8;">ANGLE(POST):</span> ${q.idealAngle}</div>
+          <div><span style="color:#64748b;">LONE PAIR:</span> ${Math.floor(q.spec.valenceElectrons / 2)} -> ${q.lonePairs} pairs (${q.ownNonBonding} e-)</div>
+          <div><span style="color:#fbbf24;">OXIDATION:</span> 0 -> ${q.oxidationSum >= 0 ? "+" + q.oxidationSum : q.oxidationSum}</div>
+          <div><span style="color:#64748b;">POTENTIAL:</span> 0 kJ/mol</div>
+          <div><span style="color:#34d399;">STABILIZED:</span> -${q.totalBondEnergy} kJ/mol</div>
+        </div>
+        <div style="color:#22d3ee; font-weight:bold; margin:6px 0 3px;">[PHYSICAL & NUCLEAR CONSTANTS]</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:3px 12px; font-size:10.5px; color:#cbd5e1;">
+          <div>MASS: ${q.spec.atomicMass}</div>
+          <div>SHELLS: ${q.spec.shells}</div>
+          <div>COV RADIUS: ${q.spec.covalentRadius} pm</div>
+          <div>VDW RADIUS: ${q.spec.vdwRadius} pm</div>
+          <div>PAULING EN: ${q.spec.paulingEN.toFixed(2)}</div>
+          <div>MULLIKEN EN: ${q.spec.mullikenEN}</div>
+          <div>IONIZATION: ${q.spec.ionizationEnergy} kJ/mol</div>
+          <div>AFFINITY: ${q.spec.electronAffinity} kJ/mol</div>
+          <div style="grid-column:1 / -1;">NMR ACTIVE: ${q.spec.nmrIsotope}</div>
+        </div>
+        <div style="color:#22d3ee; font-weight:bold; margin:6px 0 2px;">[ACTIVE COVALENT TELEMETRY]</div>
+        <div style="font-size:10px; color:#34d399;">${linkLines}</div>
+      `;
+    }
+  }
+}
+
+function ensureInspectorButtons() {
+  const undoBtn = document.getElementById("btn-undo");
+  const rightGroup = undoBtn ? undoBtn.parentElement : null;
+  if (!rightGroup) return;
+
+  const createBtn = (id, text) => {
+    let btn = document.getElementById(id);
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.id = id;
+      btn.textContent = text;
+      rightGroup.insertBefore(btn, undoBtn);
+    }
+    return btn;
+  };
+
+  createBtn("btn-inspector-toggle", "電子観察: ON");
+  createBtn("btn-deepspec-toggle", "もっと見せろ: OFF");
+  createBtn("btn-tele3d-toggle", "3Dテレメトリ: ON");
+}
+
+function syncDrillToolbarUI() {
+  ensureInspectorButtons();
+  const isDrill = chemState.drill.active;
+  const inspBtn = document.getElementById("btn-inspector-toggle");
+  const deepBtn = document.getElementById("btn-deepspec-toggle");
+  const tele3dBtn = document.getElementById("btn-tele3d-toggle");
+  const drillModeBtn = document.getElementById("btn-drill-mode");
+  const levelBtn = document.getElementById("btn-drill-level");
+  const nextBtn = document.getElementById("btn-next-drill");
+  const ansBtn = document.getElementById("btn-answer-toggle");
+  const elButtons = document.querySelectorAll(".el-btn");
+
+  if (inspBtn) {
+    inspBtn.textContent = chemState.inspector.visible ? "電子観察: ON" : "電子観察: OFF";
+    inspBtn.classList.toggle("active", chemState.inspector.visible);
+  }
+
+
+ if (deepBtn) {
+    deepBtn.style.display = "inline-block";
+    deepBtn.disabled = !chemState.inspector.visible;
+    deepBtn.style.opacity = chemState.inspector.visible ? "1.0" : "0.38";
+    deepBtn.textContent = chemState.inspector.deepSpec ? "もっと見せろ: ON" : "もっと見せろ: OFF";
+    deepBtn.classList.toggle("active", chemState.inspector.deepSpec && chemState.inspector.visible);
+  }
+  if (tele3dBtn) {
+    tele3dBtn.style.display = "inline-block";
+    tele3dBtn.textContent = chemState.inspector.telemetry3D ? "3Dテレメトリ: ON" : "3Dテレメトリ: OFF";
+    tele3dBtn.classList.toggle("active", chemState.inspector.telemetry3D);
+  }
+
+  if (drillModeBtn) {
+    drillModeBtn.style.display = "inline-block";
+    drillModeBtn.textContent = isDrill ? "ドリル: ON" : "ドリル: OFF";
+    drillModeBtn.classList.toggle("active", isDrill);
+  }
+  if (levelBtn) {
+    levelBtn.style.display = "inline-block";
+    levelBtn.disabled = !isDrill;
+    levelBtn.style.opacity = isDrill ? "1.0" : "0.38";
+    levelBtn.textContent = `Lv.${chemState.drill.level}`;
+  }
+  if (nextBtn) {
+    nextBtn.style.display = "inline-block";
+    nextBtn.disabled = !isDrill;
+    nextBtn.style.opacity = isDrill ? "1.0" : "0.38";
+  }
+  if (ansBtn) {
+    ansBtn.style.display = "inline-block";
+    ansBtn.disabled = !isDrill;
+    ansBtn.style.opacity = isDrill ? "1.0" : "0.38";
+    ansBtn.textContent = chemState.drill.showingAnswer ? "答え: ON" : "答え: OFF";
+    ansBtn.classList.toggle("active", chemState.drill.showingAnswer && isDrill);
+  }
+
+
+  elButtons.forEach(btn => {
+    btn.style.opacity = isDrill ? "0.45" : "1.0";
+  });
+}
+
+function ensureElementButtons() {
+  const elGroup = document.getElementById("element-palette");
+  if (!elGroup) return;
+
+  Object.keys(ELEMENTS).forEach(sym => {
+    if (!elGroup.querySelector(`.el-btn[data-el="${sym}"]`)) {
+      const btn = document.createElement("button");
+      btn.className = "el-btn";
+      btn.dataset.el = sym;
+      btn.textContent = `${sym} (${ELEMENTS[sym].valence})`;
+      elGroup.appendChild(btn);
+    }
+  });
+}
+
+function applyFixedToolbarLayout() {
+  // 左右ペインの上部ヘッダーバーを検出し高さを完全統一
+  const puzzleStage = document.getElementById("puzzle-stage");
+  const canvas2d = document.getElementById("canvas-2d");
+  const leftHeader = (puzzleStage && puzzleStage.previousElementSibling)
+    ? puzzleStage.previousElementSibling
+    : (canvas2d ? canvas2d.previousElementSibling : null);
+
+  const resetCamBtn = document.getElementById("btn-reset-cam");
+  let rightHeader = null;
+  let cur = resetCamBtn ? resetCamBtn.parentElement : null;
+  while (cur && cur !== document.body) {
+    if (cur.nextElementSibling && cur.nextElementSibling.querySelector("canvas")) {
+      rightHeader = cur;
+      break;
+    }
+    cur = cur.parentElement;
+  }
+
+  if (leftHeader) leftHeader.setAttribute("data-chemsim-pane-header", "aligned");
+  if (rightHeader) rightHeader.setAttribute("data-chemsim-pane-header", "aligned");
+
+  let styleEl = document.getElementById("chemsim-fixed-toolbar-style");
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "chemsim-fixed-toolbar-style";
+    document.head.appendChild(styleEl);
+  }
+
+  styleEl.textContent = `
+    [data-chemsim-pane-header="aligned"] {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      height: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
+      padding: 0 10px !important;
+      box-sizing: border-box !important;
+    }
+    [data-chemsim-pane-header="aligned"] button {
+      height: 22px !important;
+      min-height: 22px !important;
+      line-height: 1 !important;
+      padding: 0 8px !important;
+      font-size: 11px !important;
+      margin: 0 !important;
+    }
+    [data-chemsim-pane-header="aligned"] input[type="range"] {
+      height: 16px !important;
+      margin: 0 4px !important;
+      vertical-align: middle !important;
+    }
+  `;
+}
+function setupToolbarUI() {
+  ensureElementButtons();
+  ensureInspectorButtons();
+  applyFixedToolbarLayout();
+  ensureQuantumInspectorHUD();
+  const elButtons = document.querySelectorAll(".el-btn");
+  const eraseBtn = document.getElementById("btn-erase-mode");  elButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (chemState.drill.active) return;
+      chemState.isEraseMode = false;
+      if (eraseBtn) eraseBtn.classList.remove("active");
+      elButtons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      chemState.selectedElement = btn.dataset.el;
+    });
+  });
+
+  if (eraseBtn) {
+    eraseBtn.addEventListener("click", () => {
+      chemState.isEraseMode = !chemState.isEraseMode;
+      eraseBtn.classList.toggle("active", chemState.isEraseMode);
+      if (chemState.isEraseMode) {
+        elButtons.forEach(b => b.classList.remove("active"));
+      } else if (!chemState.drill.active) {
+        elButtons.forEach(b => b.classList.toggle("active", b.dataset.el === chemState.selectedElement));
+      }
+    });
+  }
+
+  const inspBtn = document.getElementById("btn-inspector-toggle");
+  if (inspBtn) {
+    inspBtn.addEventListener("click", () => {
+      chemState.inspector.visible = !chemState.inspector.visible;
+      syncDrillToolbarUI();
+      updateQuantumInspectorUI();
+    });
+  }
+
+const deepBtn = document.getElementById("btn-deepspec-toggle");
+  if (deepBtn) {
+    deepBtn.addEventListener("click", () => {
+      chemState.inspector.deepSpec = !chemState.inspector.deepSpec;
+      syncDrillToolbarUI();
+      updateQuantumInspectorUI();
+    });
+  }
+
+  const tele3dBtn = document.getElementById("btn-tele3d-toggle");
+  if (tele3dBtn) {
+    tele3dBtn.addEventListener("click", () => {
+      chemState.inspector.telemetry3D = !chemState.inspector.telemetry3D;
+      syncDrillToolbarUI();
+      render3DViewer();
+    });
+  }
+  const drillModeBtn = document.getElementById("btn-drill-mode");
+  if (drillModeBtn) {
+    drillModeBtn.addEventListener("click", () => {
+      if (!chemState.drill.active) {
+        startNewDrill(chemState.drill.level);
+      } else {
+        chemState.drill.active = false;
+        chemState.drill.showingAnswer = false;
+        chemState.drill.currentMission = null;
+        syncDrillToolbarUI();
+        refreshSimulation();
+      }
+    });
+  }
+
+  const levelBtn = document.getElementById("btn-drill-level");
+  if (levelBtn) {
+    levelBtn.addEventListener("click", () => {
+      const nextLv = (chemState.drill.level % 5) + 1;
+      startNewDrill(nextLv);
+    });
+  }
+
+  const nextBtn = document.getElementById("btn-next-drill");
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => startNewDrill(chemState.drill.level));
+  }
+
+  const ansBtn = document.getElementById("btn-answer-toggle");
+  if (ansBtn) {
+    ansBtn.addEventListener("click", toggleAnswerDisplay);
+  }
+
+  const undoBtn = document.getElementById("btn-undo");
+  if (undoBtn) {
+    undoBtn.addEventListener("click", () => {
+      if (chemState.drill.active && chemState.drill.showingAnswer) return;
+      undoAction();
+    });
+  }
+
+  const clearBtn = document.getElementById("btn-clear");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      if (chemState.drill.active && chemState.drill.showingAnswer) return;
+      if (chemState.drill.active && chemState.drill.currentMission) {
+        saveSnapshot();
+        chemState.bonds = JSON.parse(JSON.stringify(chemState.drill.currentMission.initialBonds));
+        refreshSimulation();
+      } else {
+        clearWorkspace(true);
+      }
+    });
+  }
+
+  const zoomSlider = document.getElementById("zoom-slider");
+  if (zoomSlider) {
+    zoomSlider.addEventListener("input", (e) => {
+      camera3D.zoom = parseFloat(e.target.value);
+      render3DViewer();
+    });
+  }
+
+const autoRotBtn = document.getElementById("btn-auto-rotate");
+  if (autoRotBtn) {
+    autoRotBtn.addEventListener("click", () => {
+      camera3D.autoRotate = !camera3D.autoRotate;
+      autoRotBtn.classList.toggle("active", camera3D.autoRotate);
+    });
+  }
+
+  const resetCamBtn = document.getElementById("btn-reset-cam");
+  if (resetCamBtn) {
+    resetCamBtn.addEventListener("click", () => {
+      camera3D.rotX = CHEM_ENV.DEFAULT_ROT_X;
+      camera3D.rotY = CHEM_ENV.DEFAULT_ROT_Y;
+      camera3D.zoom = 1.0;
+      if (zoomSlider) zoomSlider.value = "1.0";
+      render3DViewer();
+    });
+  }
+
+  syncDrillToolbarUI();
+}
+
+
+function resizeAllCanvases() {
+  const c2d = document.getElementById("canvas-2d");
+  const vp2d = document.getElementById("canvas-2d-viewport");
+  if (c2d && vp2d) {
+    const vpRect = vp2d.getBoundingClientRect();
+    const minW = CHEM_ENV.GRID_PITCH * CHEM_ENV.WORKSPACE_COLS;
+    const minH = CHEM_ENV.GRID_PITCH * CHEM_ENV.WORKSPACE_ROWS;
+    const targetW = Math.max(minW, Math.floor(vpRect.width));
+    const targetH = Math.max(minH, Math.floor(vpRect.height));
+    c2d.width = targetW;
+    c2d.height = targetH;
+    c2d.style.width = `${targetW}px`;
+    c2d.style.height = `${targetH}px`;
+  }
+
+  const c3d = document.getElementById("canvas-3d");
+  if (c3d && c3d.parentElement) {
+    const rect = c3d.parentElement.getBoundingClientRect();
+    const headerH = c3d.previousElementSibling ? c3d.previousElementSibling.offsetHeight : 0;
+    c3d.width = Math.max(100, Math.floor(rect.width));
+    c3d.height = Math.max(100, Math.floor(rect.height - headerH));
+  }
+
+  render2DCanvas();
+  render3DViewer();
+}
+// ======================================================================
+// 【第8章：全自動テストスイート ＆ システム初期化 (Automated QA & Boot)】
+// 収録分子辞書の指紋一意性監査、初期サンプル配置、および起動シーケンス
+// ======================================================================
+function runDatabaseAudit() {
+  const sigSet = new Set();
+  MOLECULE_DB.forEach(mol => {
+    if (sigSet.has(mol.signature)) {
+      console.error(`[QA ERROR] 重複シグネチャ検出: ${mol.id}`);
+    }
+    sigSet.add(mol.signature);
+  });
+  console.log(`[CHEMSIM QA] 収録分子数: ${MOLECULE_DB.length}件 / 指紋一意性監査完了`);
+}
+
+function loadStarterMethane() {
+  clearWorkspace(false);
+  const c = addAtom("C", 192, 160, false);
+  addOrCycleBond(c.id, addAtom("H", 192, 96, false).id);
+  addOrCycleBond(c.id, addAtom("H", 192, 224, false).id);
+  addOrCycleBond(c.id, addAtom("H", 128, 160, false).id);
+  addOrCycleBond(c.id, addAtom("H", 256, 160, false).id);
+  chemState.history.length = 0;
+}
+
+function initApp() {
+  if (window.innerWidth <= 820) {
+    chemState.inspector.visible = false;
+    chemState.inspector.telemetry3D = false;
+  }
+  runDatabaseAudit();
+  setupToolbarUI();
+  setup2DInteractions();
+  setup3DInteractions();
+  window.addEventListener("resize", resizeAllCanvases);
+  resizeAllCanvases();
+
+  // 初回起動時は「メタン (CH4)」が完成した状態で立ち上げ、即座に3D回転を体験可能にする
+  loadStarterMethane();
+  refreshSimulation();
+}
+
+
+window.addEventListener("DOMContentLoaded", initApp);
+
+
+
+  </script>
+</body>
+</html>
