@@ -1,4 +1,7 @@
 
+ /* ms.morimoto <Laforet Pario <parioetlaforet@gmail.com>  */
+
+	 /*2026年11月24日 15:22*/
 
     /* parioetlaforet@Gmail.com  M.morimoto   11_18_2026  */
 // ======================================================================
@@ -8,7 +11,7 @@
 const CHEM_ENV = {
   GRID_PITCH: 32,
   WORKSPACE_COLS: 50,
-  WORKSPACE_ROWS: 50,
+  WORKSPACE_ROWS: 50,   
   DRAG_THRESHOLD: 10,
   MAX_ATOMS: 120,
   HIT_RADIUS_ATOM: 28,
@@ -4822,36 +4825,90 @@ function buildMarathonSequence(course) {
   const items = MOLECULE_DB.map(mol => ({ mol, feat: getMoleculeFeatureVector(mol) }));
   if (items.length === 0) return [];
 
-  if (course === "FAMILY") {
-    const getFamilyRank = (feat) => {
-      const c = feat.counts;
+if (course === "FAMILY") {
+    const getFunctionalGroupRank = (mol, feat) => {
+      const c = feat.counts || {};
       const hasSpecial = Object.keys(c).some(el => !["C", "H", "O", "N"].includes(el));
-      if (hasSpecial) return 5;
-      if (c.N) return 4;
-      if (!c.C || feat.totalAtoms <= 4) return 1;
+      if (hasSpecial) return 8;
+
+      // 無機分子・メタン等の最小基本分子
+      if (!c.C || mol.id === "CO2" || (c.C === 1 && !c.O && !c.N)) return 1;
+
+     // 原子と結合のつながりから官能基を判定
+      const atoms = (mol.model3D && Array.isArray(mol.model3D.atoms)) ? mol.model3D.atoms : [];
+      const bonds = (mol.model3D && Array.isArray(mol.model3D.bonds)) ? mol.model3D.bonds : [];
+      const adj = new Map();
+
+      atoms.forEach((a, idx) => {
+        const key = a.id !== undefined ? a.id : idx;
+        adj.set(key, { type: a.type, neighbors: [] });
+      });
+      bonds.forEach(b => {
+        const n1 = adj.get(b.from);
+        const n2 = adj.get(b.to);
+        if (n1 && n2) {
+          n1.neighbors.push({ type: n2.type, order: b.order || 1 });
+          n2.neighbors.push({ type: n1.type, order: b.order || 1 });
+        }
+      });
+
+      let hasCarboxylOrEster = false;
+      let hasCarbonyl = false;
+      let hasHydroxylOrEther = false;
+
+      adj.forEach(info => {
+        if (info.type === "C") {
+          const doubleO = info.neighbors.some(nb => nb.type === "O" && nb.order === 2);
+          const singleO = info.neighbors.some(nb => nb.type === "O" && nb.order === 1);
+          if (doubleO && singleO) {
+            hasCarboxylOrEster = true;
+          } else if (doubleO) {
+            hasCarbonyl = true;
+          }
+        } else if (info.type === "O") {
+          const isSingleOnly = info.neighbors.every(nb => nb.order === 1);
+          const bondedToH = info.neighbors.some(nb => nb.type === "H");
+          const bondedToC = info.neighbors.some(nb => nb.type === "C");
+          if (isSingleOnly && bondedToC && (bondedToH || info.neighbors.length >= 2)) {
+            hasHydroxylOrEther = true;
+          }
+        }
+      });
+
+      if (c.N) return 7;
+      if (hasCarboxylOrEster) return 6;
+      if (hasCarbonyl) return 5;
+      if (hasHydroxylOrEther) return 4;
       if (feat.hasRing) return 3;
       return 2;
     };
+
     return items
-      .sort((a, b) => (getFamilyRank(a.feat) - getFamilyRank(b.feat)) || (a.feat.totalAtoms - b.feat.totalAtoms))
+      .sort((a, b) => (getFunctionalGroupRank(a.mol, a.feat) - getFunctionalGroupRank(b.mol, b.feat)) || (a.feat.totalAtoms - b.feat.totalAtoms))
       .map(x => x.mol);
   }
 
-  if (course === "ISOMER") {
+
+ if (course === "ISOMER") {
     const groups = {};
     items.forEach(item => {
       const key = item.feat.formulaKey;
       if (!groups[key]) groups[key] = [];
       groups[key].push(item);
     });
-    const sortedGroups = Object.values(groups).sort((a, b) => {
-      const isIsoA = a.length > 1 ? 0 : 1;
-      const isIsoB = b.length > 1 ? 0 : 1;
-      if (isIsoA !== isIsoB) return isIsoA - isIsoB;
-      return a[0].feat.totalAtoms - b[0].feat.totalAtoms;
-    });
-    return sortedGroups.flat().map(x => x.mol);
+    const isomerGroups = Object.values(groups)
+      .filter(group => group.length > 1)
+      .sort((a, b) => a[0].feat.totalAtoms - b[0].feat.totalAtoms);
+
+    if (isomerGroups.length === 0) {
+      return [...items]
+        .sort((a, b) => a.feat.totalAtoms - b.feat.totalAtoms)
+        .map(x => x.mol);
+    }
+    return isomerGroups.flat().map(x => x.mol);
   }
+
+
 
   const remaining = [...items].sort((a, b) => a.feat.totalAtoms - b.feat.totalAtoms);
   const chain = [remaining.shift()];
@@ -4880,7 +4937,13 @@ function buildMarathonSequence(course) {
   return chain.map(x => x.mol);
 }
 
-// ハイブリッド・プログレッシブ分子ドリル動的生成エンジン (Lv.1 - Lv.5 / 91マラソン)
+const DRILL_COURSE_LABELS = {
+  EVOLUTION: "1:誘導体",
+  FAMILY: "2:官能基",
+  ISOMER: "3:異性体"
+};
+
+// ハイブリッド・プログレッシブ分子ドリル動的生成エンジン (Lv.1 - Lv.5 / 応用コース)
 function generateChemDrill(lv, viewW, viewH) {
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const isMarathon = chemState.drill.type === "MARATHON";
@@ -4894,41 +4957,61 @@ function generateChemDrill(lv, viewW, viewH) {
     const idx = ((chemState.drill.marathonIndex % total) + total) % total;
     targetMol = seq[idx];
     targetId = targetMol.id;
-    const courseNames = {
-      EVOLUTION: "進化チェーン",
-      FAMILY: "骨格ファミリー",
-      ISOMER: "異性体・比較"
-    };
     marathonMeta = {
       index: idx + 1,
       total,
-      courseName: courseNames[chemState.drill.marathonCourse] || "進化チェーン"
+      courseName: DRILL_COURSE_LABELS[chemState.drill.marathonCourse] || DRILL_COURSE_LABELS.EVOLUTION
     };
-  } else {
-    const levelPools = {
-      1: ["H2O", "CH4", "NH3"],
-      2: ["CO2", "CH2O", "C2H4", "C2H2"],
-      3: ["CO2", "C2H4", "C2H2", "C2H5OH", "CH3COOH"],
-      4: ["C2H5OH", "CH3OCH3", "C3H6_PROPENE", "C3H6_CYCLOPROPANE", "C3H6O3", "C7H6O3"],
-      5: ["N_BUTANE", "ISOBUTANE", "C8H8O3", "C7H6O3", "C10H20O", "C8H10N4O2"]
+
+ } else {
+   const calcComplexityScore = (mol) => {
+      const feat = getMoleculeFeatureVector(mol);
+      const els = Object.keys(feat.counts);
+      const hasHetero = els.some(el => !["C", "H", "O", "N"].includes(el));
+      const bondWeight = feat.double * 1.5 + feat.triple * 2.5;
+      const ringWeight = feat.hasRing ? 4.0 : 0;
+      const diversityWeight = Math.max(0, els.length - 2) * 1.5 + (hasHetero ? 6.0 : 0);
+      return feat.totalAtoms + bondWeight + ringWeight + diversityWeight;
     };
-    const pool = (levelPools[lv] || levelPools[1]).filter(id => MOLECULE_DB.some(m => m.id === id));
-    targetId = pick(pool.length > 0 ? pool : levelPools[1]);
-    targetMol = MOLECULE_DB.find(m => m.id === targetId);
+
+    const getAutoLevel = (score) => {
+      if (score <= 5.5) return 1;
+      if (score <= 9.5) return 2;
+      if (score <= 15.0) return 3;
+      if (score <= 23.0) return 4;
+      return 5;
+    };
+
+    const buckets = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    MOLECULE_DB.forEach(mol => {
+      const assignedLv = getAutoLevel(calcComplexityScore(mol));
+      buckets[assignedLv].push(mol);
+    });
+
+    const targetLv = Math.min(5, Math.max(1, Number(lv) || 1));
+    let pool = buckets[targetLv];
+    if (pool.length === 0) {
+      pool = Object.values(buckets).find(arr => arr.length > 0) || MOLECULE_DB;
+    }
+
+    const prevId = chemState.drill.currentMission ? chemState.drill.currentMission.targetId : null;
+    const filteredPool = pool.length > 1 ? pool.filter(m => m.id !== prevId) : pool;
+    targetMol = pick(filteredPool);
+    targetId = targetMol.id;
   }
 
 
 // 中心間距離保証ロジック: 中規模分子はスクロール領域全体を活用して重なりを防止
   const pitch = CHEM_ENV.GRID_PITCH;
   const margin = 44;
-  const isLargeMol = targetMol.model3D.atoms.length >= 12;
+  const isLargeMol = targetMol.model3D.atoms.length >= 8;
   const effectiveW = isLargeMol ? Math.min(CHEM_ENV.WORKSPACE_COLS * pitch, Math.max(viewW, 640)) : viewW;
   const effectiveH = isLargeMol ? Math.min(CHEM_ENV.WORKSPACE_ROWS * pitch, Math.max(viewH, 480)) : viewH;
   const usableW = Math.max(pitch * 4, effectiveW - margin * 2);
   const usableH = Math.max(pitch * 3, effectiveH - margin * 2);  const placedPositions = [];
 
   const allocateCell = () => {
-    const distanceSteps = [84, 72, 62, 52];
+    const distanceSteps = [92, 80, 68, 58];
     for (const minDist of distanceSteps) {
       for (let attempt = 0; attempt < 150; attempt++) {
         const rawX = margin + Math.random() * usableW;
@@ -4952,9 +5035,38 @@ function generateChemDrill(lv, viewW, viewH) {
     placedPositions.push(fallback);
     return fallback;
   };
+const projected = targetMol.model3D.atoms.map(a => ({
+    type: a.type,
+    px: (a.x || 0) + (a.z || 0) * 0.35,
+    py: (a.y || 0) - (a.z || 0) * 0.25
+  }));
+  let pMinX = Infinity, pMaxX = -Infinity, pMinY = Infinity, pMaxY = -Infinity;
+  projected.forEach(p => {
+    if (p.px < pMinX) pMinX = p.px;
+    if (p.px > pMaxX) pMaxX = p.px;
+    if (p.py < pMinY) pMinY = p.py;
+    if (p.py > pMaxY) pMaxY = p.py;
+  });
+  const spanX = Math.max(0.5, pMaxX - pMinX);
+  const spanY = Math.max(0.5, pMaxY - pMinY);
+  const scale = Math.min((usableW * 0.7) / spanX, (usableH * 0.7) / spanY, 64);
+  const midX = (pMinX + pMaxX) / 2;
+  const midY = (pMinY + pMaxY) / 2;
+  const centerX = margin + usableW / 2;
+  const centerY = margin + usableH / 2;
+
   const atoms = targetMol.model3D.atoms.map((a, idx) => {
-    const pos = allocateCell();
-    return { id: `A_${idx + 1}`, type: a.type, x: pos.x, y: pos.y };
+    const isSkeleton = a.type === "C";
+    if (isLargeMol && isSkeleton) {
+      const p = projected[idx];
+      const px = snapToGrid(centerX + (p.px - midX) * scale);
+      const py = snapToGrid(centerY + (p.py - midY) * scale);
+      placedPositions.push({ x: px, y: py });
+      return { id: `A_${idx + 1}`, type: a.type, x: px, y: py };
+    } else {
+      const pos = allocateCell();
+      return { id: `A_${idx + 1}`, type: a.type, x: pos.x, y: pos.y };
+    }
   });
 
   const answerBonds = targetMol.model3D.bonds.map((b, idx) => ({
@@ -5049,13 +5161,21 @@ const isomerSwaps = {
           }
         }
         if (injected) break;
-      }
+     }
       modeLabel = "過剰架橋バイパス診断";
       symptomHint = `余分なバイパス結合が混入し原子価が破綻している。不正な結合を除去し [${targetMol.name}] へ復旧せよ。`;
     }
+  } else if (isLargeMol) {
+    initialBonds = answerBonds.filter(b => {
+      const fromType = atoms.find(a => a.id === b.from).type;
+      const toType = atoms.find(a => a.id === b.to).type;
+      return fromType === "C" && toType === "C";
+    }).map(b => JSON.parse(JSON.stringify(b)));
+    modeLabel = "官能基修飾（骨格完成済）";
+    symptomHint = `炭素骨格が準備された。周囲の未結合パーツを正しい位置に結合し [${targetMol.name}] を完成させよ。`;
   }
 
- if (marathonMeta) {
+  if (marathonMeta) {
     modeLabel = `[${marathonMeta.courseName} ${marathonMeta.index}/${marathonMeta.total}] ${modeLabel}`;
     symptomHint = `(${marathonMeta.index}/${marathonMeta.total}問目) ${symptomHint}`;
   }
@@ -5075,21 +5195,54 @@ const isomerSwaps = {
 function startNewDrill(lv = chemState.drill.level) {
   const viewport = document.getElementById("canvas-2d-viewport");
   const canvas = document.getElementById("canvas-2d");
-  if (viewport) {
-    viewport.scrollLeft = 0;
-    viewport.scrollTop = 0;
-  }
-  const w = (viewport && viewport.clientWidth > 0) ? viewport.clientWidth : (canvas ? canvas.width : 480);
-  const h = (viewport && viewport.clientHeight > 0) ? viewport.clientHeight : (canvas ? canvas.height : 360);
+  const z = (typeof chemState !== "undefined" && chemState.zoom2D) ? chemState.zoom2D : 1.0;
 
-  chemState.drill.active = true;  chemState.drill.level = lv;
+  const logicalW = (typeof CHEM_ENV !== "undefined" && CHEM_ENV.GRID_PITCH && CHEM_ENV.WORKSPACE_COLS)
+    ? CHEM_ENV.GRID_PITCH * CHEM_ENV.WORKSPACE_COLS
+    : (canvas && canvas.width > 0 ? Math.round(canvas.width / z) : 960);
+  const logicalH = (typeof CHEM_ENV !== "undefined" && CHEM_ENV.GRID_PITCH && CHEM_ENV.WORKSPACE_ROWS)
+    ? CHEM_ENV.GRID_PITCH * CHEM_ENV.WORKSPACE_ROWS
+    : (canvas && canvas.height > 0 ? Math.round(canvas.height / z) : 720);
+
+  const viewW = (viewport && viewport.clientWidth > 0) ? viewport.clientWidth : Math.min(logicalW, 480);
+  const viewH = (viewport && viewport.clientHeight > 0) ? viewport.clientHeight : Math.min(logicalH, 360);
+
+  chemState.drill.active = true;
+  chemState.drill.level = lv;
   chemState.drill.showingAnswer = false;
   chemState.drill.savedUserBonds = null;
 
-  const mission = generateChemDrill(lv, w, h);
+  const mission = generateChemDrill(lv, viewW, viewH);
   chemState.drill.currentMission = mission;
 
-  chemState.atoms = JSON.parse(JSON.stringify(mission.atoms));
+  const rawAtoms = JSON.parse(JSON.stringify(mission.atoms));
+  const centerX = logicalW * 0.5;
+  const centerY = logicalH * 0.5;
+
+  if (rawAtoms.length > 0) {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    rawAtoms.forEach(a => {
+      if (a.x < minX) minX = a.x;
+      if (a.x > maxX) maxX = a.x;
+      if (a.y < minY) minY = a.y;
+      if (a.y > maxY) maxY = a.y;
+    });
+    const dx = centerX - (minX + maxX) * 0.5;
+    const dy = centerY - (minY + maxY) * 0.5;
+    rawAtoms.forEach(a => {
+      const nx = a.x + dx;
+      const ny = a.y + dy;
+      if (chemState.autoSnap && typeof snapToGrid === "function") {
+        a.x = snapToGrid(nx);
+        a.y = snapToGrid(ny);
+      } else {
+        a.x = Math.round(nx);
+        a.y = Math.round(ny);
+      }
+    });
+  }
+
+  chemState.atoms = rawAtoms;
   chemState.bonds = JSON.parse(JSON.stringify(mission.initialBonds));
   chemState.nextAtomId = chemState.atoms.length + 1;
   chemState.nextBondId = chemState.bonds.length + 1;
@@ -5098,8 +5251,13 @@ function startNewDrill(lv = chemState.drill.level) {
 
   syncDrillToolbarUI();
   refreshSimulation();
-}
 
+  if (viewport) {
+    const curZ = (typeof chemState !== "undefined" && chemState.zoom2D) ? chemState.zoom2D : 1.0;
+    viewport.scrollLeft = Math.max(0, Math.round(centerX * curZ - viewW * 0.5));
+    viewport.scrollTop = Math.max(0, Math.round(centerY * curZ - viewH * 0.5));
+  }
+}
 function toggleAnswerDisplay() {
   if (!chemState.drill.active || !chemState.drill.currentMission) return;
   const mission = chemState.drill.currentMission;
@@ -6047,9 +6205,98 @@ function render2DCanvas() {
   for (let x = 0; x <= logicalW; x += pitch) {
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, logicalH); ctx.stroke();
   }
-  for (let y = 0; y <= logicalH; y += pitch) {
+for (let y = 0; y <= logicalH; y += pitch) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(logicalW, y); ctx.stroke();
   }
+
+// 初回起動時の遊び方ガイド（同じ位置に1ステップずつ順番に差し替え表示）
+  if (chemState.showStarterGuide) {
+    const isDrillOn = Boolean(chemState.drill && chemState.drill.active);
+    const hCount = chemState.atoms.filter(a => a.type === "H").length;
+    const oCount = chemState.atoms.filter(a => a.type === "O").length;
+    const hasOtherAtom = chemState.atoms.some(a => a.type !== "H" && a.type !== "O");
+    const isH2OComplete = Boolean(
+      chemState.lastEvaluation &&
+      chemState.lastEvaluation.status === "STABLE_MATCH" &&
+      chemState.atoms.length === 3 &&
+      hCount === 2 &&
+      oCount === 1
+    );
+
+    if (isDrillOn || hasOtherAtom || hCount > 2 || oCount > 1) {
+      chemState.showStarterGuide = false;
+    } else {
+      const vp = document.getElementById("canvas-2d-viewport");
+      const viewCenterX = (vp && vp.clientWidth > 0) ? (vp.scrollLeft + vp.clientWidth * 0.5) / z : logicalW * 0.5;
+      const viewCenterY = (vp && vp.clientHeight > 0) ? (vp.scrollTop + vp.clientHeight * 0.5) / z : logicalH * 0.5;
+      const viewVisibleW = (vp && vp.clientWidth > 0) ? (vp.clientWidth / z) : logicalW;
+
+      let headerLabel = "HOW TO PLAY : まずは水の分子を作ろう";
+      let stepText = "左側の元素ボタンHをクリックしてからこの画面に水素原子を二つ配置しましょう。";
+
+      if (isH2OComplete) {
+        headerLabel = "COMPLETE : 水の分子 (H2O) 完成！";
+        stepText = "画面下側のドリルボタンをオンにすれば出題されます。";
+      } else if (hCount >= 2) {
+        headerLabel = "STEP 2 / 3 : 酸素を配置してつなごう";
+        stepText = "HボタンをオフにしてOボタンをクリックし、O(単原子)を選んでこの画面に一つ配置しましょう。元素をタップしそのまま他の元素に接続線が引けます。3つの元素をつないで水の分子を完成させましょう。";
+      }
+
+      const isCompact = viewVisibleW < 420;
+      const boxW = Math.max(220, Math.min(viewVisibleW * 0.9, 460));
+      const padX = isCompact ? 12 : 16;
+      const padY = isCompact ? 10 : 14;
+      const innerW = boxW - padX * 2;
+      const fontSize = isCompact ? 10.5 : 12.5;
+      const lineH = Math.round(fontSize * 1.45);
+      const headerH = isCompact ? 18 : 22;
+
+      ctx.save();
+      ctx.font = `bold ${fontSize}px sans-serif`;
+
+      const lines = [];
+      let current = "";
+      for (const ch of stepText) {
+        if (ctx.measureText(current + ch).width > innerW && current.length > 0) {
+          lines.push(current);
+          current = ch;
+        } else {
+          current += ch;
+        }
+      }
+      if (current) lines.push(current);
+
+      const boxH = padY * 2 + headerH + lines.length * lineH;
+      const boxX = viewCenterX - boxW * 0.5;
+      const boxY = Math.max(10, viewCenterY - boxH * 0.5);
+
+      ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
+      ctx.strokeStyle = isH2OComplete ? "rgba(52, 211, 153, 0.68)" : "rgba(56, 189, 248, 0.45)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.rect(boxX, boxY, boxW, boxH);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = isH2OComplete ? "#34d399" : "#38bdf8";
+      ctx.font = `bold ${fontSize}px monospace`;
+      ctx.fillText(headerLabel, boxX + padX, boxY + padY);
+
+      ctx.fillStyle = isH2OComplete ? "#ecfdf5" : "#f8fafc";
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      let cursorY = boxY + padY + headerH;
+      lines.forEach(line => {
+        ctx.fillText(line, boxX + padX, cursorY);
+        cursorY += lineH;
+      });
+
+      ctx.restore();
+    }
+  }
+
+
   // ドラッグ中の結線ガイド線
   const ds = chemState.dragState;
   if (ds.activeAtomId) {
@@ -6122,21 +6369,12 @@ function render2DCanvas() {
     ctx.strokeStyle = spec.strokeColor;
     ctx.stroke();
 
-    // 元素記号テキスト
+// 元素記号テキスト
     ctx.fillStyle = spec.textColor;
     ctx.font = "bold 15px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(spec.symbol, atom.x, atom.y);
-
-  // 残り結合手のインジケータ（未完了時のみ小さく表示）
-    if (diag && diag.state !== "OK") {
-      const rem = diag.maxValence - diag.usedValence;
-      const badgeText = rem > 0 ? `+${rem}` : `${rem}`;
-      ctx.fillStyle = rem > 0 ? "#fbbf24" : "#f87171";
-      ctx.font = "bold 11px monospace";
-      ctx.fillText(badgeText, atom.x + spec.radius2D + 6, atom.y - spec.radius2D - 2);
-    }
 
     // 選択中またはドラッグ中原子の強調ターゲットマーカー（電子観察OFF時も常時表示）
     const isSelected = chemState.inspector && chemState.inspector.targetAtomId === atom.id;
@@ -6161,7 +6399,7 @@ function render2DCanvas() {
       corners.forEach(([sx, sy]) => {
         const cx = atom.x + sx * (selR + 1);
         const cy = atom.y + sy * (selR + 1);
-     ctx.beginPath();
+        ctx.beginPath();
         ctx.moveTo(cx - sx * bLen, cy);
         ctx.lineTo(cx, cy);
         ctx.lineTo(cx, cy - sy * bLen);
@@ -6170,7 +6408,43 @@ function render2DCanvas() {
       ctx.restore();
     }
   });
+
+  // 残り結合手のインジケータを全原子の上端（12時方向）に背景付き最前面バッジとして一括描画
+  chemState.atoms.forEach(atom => {
+    const diag = diagMap.get(atom.id);
+    if (!diag || diag.state === "OK") return;
+    const spec = ELEMENTS[atom.type];
+    const rem = diag.maxValence - diag.usedValence;
+    const badgeText = rem > 0 ? `+${rem}` : `${rem}`;
+    const bx = atom.x;
+    const by = atom.y - spec.radius2D - 4;
+
+    ctx.save();
+    ctx.font = "bold 10px monospace";
+    const textW = ctx.measureText(badgeText).width;
+    const padX = 4;
+    const boxW = textW + padX * 2;
+    const boxH = 14;
+
+    ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+    ctx.strokeStyle = rem > 0 ? "rgba(251, 191, 36, 0.75)" : "rgba(248, 113, 113, 0.85)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.rect(bx - boxW / 2, by - boxH / 2, boxW, boxH);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = rem > 0 ? "#fbbf24" : "#f87171";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(badgeText, bx, by + 0.5);
+    ctx.restore();
+  });
+
   ctx.restore();
+
+
+
   updateLiveFormulaInspector();
 }
 
@@ -6220,14 +6494,30 @@ function render3DViewer() {
     });
     teleBtn.parentElement.insertBefore(styleBtn, teleBtn.nextSibling);
   }
-  const isClassic3D = Boolean(chemState.classic3DMode);
+let bulkBtn = document.getElementById("btn-3d-bulk-toggle");
+  if (!bulkBtn && teleBtn && teleBtn.parentElement) {
+    bulkBtn = document.createElement("button");
+    bulkBtn.id = "btn-3d-bulk-toggle";
+    bulkBtn.type = "button";
+    bulkBtn.addEventListener("click", () => {
+      chemState.bulk3DMode = !chemState.bulk3DMode;
+      render3DViewer();
+    });
+    teleBtn.parentElement.insertBefore(bulkBtn, styleBtn ? styleBtn.nextSibling : teleBtn.nextSibling);
+  }
+  const isBulk3D = Boolean(chemState.bulk3DMode);
+  if (bulkBtn) {
+    bulkBtn.textContent = isBulk3D ? "構成: 3x3x3" : "構成: 単体";
+    bulkBtn.classList.toggle("active", isBulk3D);
+  }
+
+const isClassic3D = Boolean(chemState.classic3DMode);
   if (styleBtn) {
     styleBtn.textContent = isClassic3D ? "表示: 立体構造式" : "表示: 量子クラウド";
     styleBtn.classList.toggle("active", isClassic3D);
   }
 
-  const evalRes = chemState.lastEvaluation;
-  if (!evalRes || evalRes.status !== "STABLE_MATCH" || !evalRes.molecule || !evalRes.molecule.model3D) {
+  const evalRes = chemState.lastEvaluation;  if (!evalRes || evalRes.status !== "STABLE_MATCH" || !evalRes.molecule || !evalRes.molecule.model3D) {
     render3DViewer.wasActive = false;
     ctx.clearRect(0, 0, w, h);
     ctx.strokeStyle = "rgba(51, 65, 85, 0.25)";
@@ -6409,50 +6699,255 @@ const showTele = Boolean(chemState.inspector && chemState.inspector.telemetry3D)
     return { idx, type: a.type, delta: netDelta[idx], qSpec, lpTargets, proj };
   });
 
-  // Zソート用の描画リスト（棒を排し、量子電子雲と原子核コアを奥行き順に統合）
+ // Zソート用の描画リスト（単体モード または 3x3x3集合ネットワーク展開）
   const drawList = [];
 
-  projectedAtoms.forEach(pa => {
-    if (pa.proj && pa.proj.visible) {
-      drawList.push({
-        kind: "atom",
-        depth: pa.proj.depth,
-        data: pa
-      });
-    }
-  });
+  if (!isBulk3D) {
+    projectedAtoms.forEach(pa => {
+      if (pa.proj && pa.proj.visible) {
+        drawList.push({ kind: "atom", depth: pa.proj.depth, data: pa });
+      }
+    });
 
-  model.bonds.forEach((b, bIdx) => {
-    const pA = projectedAtoms[b.from];
-    const pB = projectedAtoms[b.to];
-    if (pA && pB && pA.proj && pB.proj && pA.proj.visible && pB.proj.visible) {
-      const midDepth = (pA.proj.depth + pB.proj.depth) * 0.5;
-      drawList.push({
-        kind: "bondCloud",
-        depth: midDepth,
-        data: {
-          pA: pA.proj,
-          pB: pB.proj,
-          order: b.order,
-          metric: bondMetrics[bIdx] || { enthalpy: 340, enDiff: 0, shift: 0 }
+    model.bonds.forEach((b, bIdx) => {
+      const pA = projectedAtoms[b.from];
+      const pB = projectedAtoms[b.to];
+      if (pA && pB && pA.proj && pB.proj && pA.proj.visible && pB.proj.visible) {
+        drawList.push({
+          kind: "bondCloud",
+          depth: (pA.proj.depth + pB.proj.depth) * 0.5,
+          data: {
+            pA: pA.proj,
+            pB: pB.proj,
+            order: b.order,
+            metric: bondMetrics[bIdx] || { enthalpy: 340, enDiff: 0, shift: 0 }
+          }
+        });
+      }
+    });
+  } else {
+    const spacing = Math.max(1.9, maxR * 2.35);
+    const bulkScale = Math.min(1.0, 1.35 / (spacing * 1.45));
+    const bulkVisScale = Math.sqrt(bulkScale);
+    const cellMap = new Map();
+
+    for (let ix = -1; ix <= 1; ix++) {
+      for (let iy = -1; iy <= 1; iy++) {
+        for (let iz = -1; iz <= 1; iz++) {
+          const isCenter = (ix === 0 && iy === 0 && iz === 0);
+          const parity = ((ix + iy + iz) & 1) ? 1 : -1;
+          const rotA = parity * 0.55 + (ix - iz) * 0.25;
+          const cosA = Math.cos(rotA);
+          const sinA = Math.sin(rotA);
+
+      const projectCellVec = (lx, ly, lz) => {
+            const rx = lx * cosA - lz * sinA;
+            const rz = lx * sinA + lz * cosA;
+            return rotateAndProject3D({
+              x: (rx + ix * spacing) * bulkScale,
+              y: (ly + iy * spacing) * bulkScale,
+              z: (rz + iz * spacing) * bulkScale
+            }, w, h);
+          };
+
+          const cellAtoms = model.atoms.map((a, idx) => {
+            const lx = a.x - cx;
+            const ly = a.y - cy;
+            const lz = a.z - cz;
+            const rx = lx * cosA - lz * sinA;
+            const rz = lx * sinA + lz * cosA;
+            const wx = rx + ix * spacing;
+            const wy = ly + iy * spacing;
+            const wz = rz + iz * spacing;
+            const proj = projectCellVec(lx, ly, lz);
+
+            const lpTargets = [];
+            if (projectedAtoms[idx].lpTargets.length > 0 && neighborVecs[idx].length > 0) {
+              let vx = 0, vy = 0, vz = 0;
+              neighborVecs[idx].forEach(v => { vx -= v.x; vy -= v.y; vz -= v.z; });
+              const vL = Math.hypot(vx, vy, vz) || 1;
+              lpTargets.push(projectCellVec(lx + (vx / vL) * 0.72, ly + (vy / vL) * 0.72, lz + (vz / vL) * 0.72));
+            }
+
+            return {
+              idx,
+              type: a.type,
+              wx,
+              wy,
+              wz,
+              delta: netDelta[idx],
+              qSpec: projectedAtoms[idx].qSpec,
+              lpTargets,
+              proj,
+              alpha: isCenter ? 1.0 : 0.65,
+              visScale: bulkVisScale,
+              densityScale: isCenter ? 0.85 : 0.2
+            };
+          });
+
+          cellMap.set(`${ix},${iy},${iz}`, cellAtoms);
+
+          cellAtoms.forEach(ca => {
+            if (ca.proj && ca.proj.visible) {
+              drawList.push({ kind: "atom", depth: ca.proj.depth, data: ca });
+            }
+          });
+
+          model.bonds.forEach((b, bIdx) => {
+            const cA = cellAtoms[b.from];
+            const cB = cellAtoms[b.to];
+            if (cA && cB && cA.proj && cB.proj && cA.proj.visible && cB.proj.visible) {
+              drawList.push({
+                kind: "bondCloud",
+                depth: (cA.proj.depth + cB.proj.depth) * 0.5,
+                data: {
+                  pA: cA.proj,
+                  pB: cB.proj,
+                  order: b.order,
+                 alpha: isCenter ? 0.95 : 0.55,
+                  visScale: bulkVisScale,
+                  densityScale: isCenter ? 0.85 : 0.2,
+                  metric: bondMetrics[bIdx] || { enthalpy: 340, enDiff: 0, shift: 0 }
+                }
+              });
+            }
+          });
         }
-      });
+      }
     }
-  });
+
+  // 隣接する分子同士の相互作用（水素結合、双極子引力、分散力）を判定してライン追加
+    const polarSet = new Set(["O", "N", "F", "Cl", "Br", "S"]);
+    const dirs = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    let totalCohesionE = 0;
+    let primaryForceType = "LONDON DISPERSION";
+
+    for (let ix = -1; ix <= 1; ix++) {
+      for (let iy = -1; iy <= 1; iy++) {
+        for (let iz = -1; iz <= 1; iz++) {
+          const srcAtoms = cellMap.get(`${ix},${iy},${iz}`);
+          if (!srcAtoms) continue;
+          const isSrcCenter = (ix === 0 && iy === 0 && iz === 0);
+
+          dirs.forEach(([dx, dy, dz]) => {
+            const dstAtoms = cellMap.get(`${ix + dx},${iy + dy},${iz + dz}`);
+            if (!dstAtoms) return;
+            const isDstCenter = ((ix + dx) === 0 && (iy + dy) === 0 && (iz + dz) === 0);
+
+            let bestPair = null;
+            let bestScore = Infinity;
+            let forceType = "DISPERSION";
+            let estEnergy = 0;
+
+            for (let i = 0; i < srcAtoms.length; i++) {
+              for (let j = 0; j < dstAtoms.length; j++) {
+                const a1 = srcAtoms[i];
+                const a2 = dstAtoms[j];
+                const d = Math.hypot(a1.wx - a2.wx, a1.wy - a2.wy, a1.wz - a2.wz);
+                            const isHBond = (a1.type === "H" && a1.delta > 0.08 && polarSet.has(a2.type) && a2.delta < -0.05) ||
+                                (a2.type === "H" && a2.delta > 0.08 && polarSet.has(a1.type) && a1.delta < -0.05);
+                const isDipole = Math.abs(a1.delta) > 0.08 && Math.abs(a2.delta) > 0.08 && (a1.delta * a2.delta < 0);
+                const hasPi = (a1.type === "C" && a1.qSpec.valenceElectrons > 0) && (a2.type === "C" && a2.qSpec.valenceElectrons > 0); // 簡易判定
+
+                let score = d;
+                let energy = 0;
+                let fType = "DISPERSION";
+
+                if (isHBond) {
+                  score = d * 0.55;
+                  energy = 22.5 - (d * 3);
+                  fType = "H-BOND";
+                } else if (isDipole) {
+                  score = d * 0.75;
+                  energy = 8.5 - (d * 1.5);
+                  fType = "DIPOLE";
+                } else if (hasPi) {
+                  score = d * 0.85;
+                  energy = 4.5 - (d * 0.5);
+                  fType = "PI-STACK";
+                } else {
+                  energy = 1.5 - (d * 0.2);
+                }
+
+                if (score < bestScore) {
+                  bestScore = score;
+                  bestPair = [a1, a2];
+                  forceType = fType;
+                  estEnergy = Math.max(0.5, energy);
+                }
+              }
+            }
+
+            if (bestPair && bestPair[0].proj.visible && bestPair[1].proj.visible) {
+              if (isSrcCenter || isDstCenter) {
+                totalCohesionE += estEnergy;
+                if (forceType === "H-BOND") primaryForceType = "HYDROGEN BOND";
+                else if (forceType === "DIPOLE" && primaryForceType !== "HYDROGEN BOND") primaryForceType = "DIPOLE-DIPOLE";
+                else if (forceType === "PI-STACK" && primaryForceType === "LONDON DISPERSION") primaryForceType = "PI-STACKING";
+              }
+                            drawList.push({
+                kind: "interBond",
+                depth: (bestPair[0].proj.depth + bestPair[1].proj.depth) * 0.5,
+                data: {
+                  pA: bestPair[0].proj,
+                  pB: bestPair[1].proj,
+                  forceType
+                }
+              });
+            }
+          });
+        }
+      }
+    }
+        // 計算結果をHUD表示用にchemStateへ退避
+    chemState.lastCohesionE = totalCohesionE.toFixed(1);
+    chemState.lastPrimaryForce = primaryForceType;
+  }
 
   drawList.sort((a, b) => b.depth - a.depth);
 
 drawList.forEach(item => {
-    if (item.kind === "bondCloud") {
-      const { pA, pB, order, metric } = item.data;
+
+
+
+
+
+
+ if (item.kind === "interBond") {
+      const { pA, pB, forceType } = item.data;
+      ctx.save();
+      if (forceType === "H-BOND") {
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.85)"; // シアン（太）
+        ctx.lineWidth = 1.8;
+      } else if (forceType === "DIPOLE") {
+        ctx.strokeStyle = "rgba(245, 158, 11, 0.65)"; // アンバー（中）
+        ctx.lineWidth = 1.3;
+      } else if (forceType === "PI-STACK") {
+        ctx.strokeStyle = "rgba(168, 85, 247, 0.55)"; // パープル（細）
+        ctx.lineWidth = 1.1;
+      } else {
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.35)"; // グレー（細）
+        ctx.lineWidth = 1.0;
+      }
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(pA.x, pA.y);
+      ctx.lineTo(pB.x, pB.y);
+      ctx.stroke();
+      ctx.restore();
+ } else if (item.kind === "bondCloud") {
+      const { pA, pB, order, metric, alpha = 1.0, visScale = visualScale, densityScale = 1.0 } = item.data;
       const dx = pB.x - pA.x;
       const dy = pB.y - pA.y;
       const len = Math.hypot(dx, dy) || 1;
       const nx = -dy / len;
       const ny = dx / len;
       const avgScale = (pA.scale + pB.scale) * 0.5;
+      ctx.save();
+      ctx.globalAlpha = alpha;
 
       if (isClassic3D) {
+
         // なじみのある立体化学構造式モード（単線・二重線・三重線の立体バー）
         const lineW = Math.max(2.0, Math.min(4.2, avgScale * 0.032 * visualScale));
         const gap = Math.max(3.6, Math.min(7.5, avgScale * 0.055 * visualScale));
@@ -6487,9 +6982,10 @@ drawList.forEach(item => {
         const spreadFactor = isWeakBond ? 1.28 : (isFragileBond ? 1.12 : (isRigidBond ? 0.86 : 1.0));
         const flickerPulse = isWeakBond ? (0.55 + 0.45 * Math.sin(performance.now() * 0.012)) : 1.0;
 
-        const dotCount = Math.min(260, Math.max(24, Math.round(95 * order * densityFactor)));
-        const latSigma = (order === 1 ? 0.068 : 0.125) * avgScale * spreadFactor * visualScale;
+      const dotCount = Math.min(260, Math.max(8, Math.round(95 * order * densityFactor * densityScale)));
+        const latSigma = (order === 1 ? 0.068 : 0.125) * avgScale * spreadFactor * visScale;
         const polarPower = Math.abs(metric.enDiff) < 0.08 ? 1.0 : (metric.enDiff > 0 ? 0.76 : 1.32);
+        const sizeBoost = densityScale < 0.5 ? 1.35 : 1.0;
 
         for (let i = 0; i < dotCount; i++) {
           const t = Math.pow(Math.random(), polarPower);
@@ -6502,8 +6998,8 @@ drawList.forEach(item => {
           const isPiRegion = order > 1 && Math.abs(lateral) > latSigma * 0.62;
 
           ctx.fillStyle = isPiRegion ? "#a855f7" : "#22d3ee";
-          ctx.globalAlpha = endFade * latFade * (0.35 + Math.random() * 0.65) * flickerPulse;
-          const dotSize = isRigidBond ? 1.48 : (isWeakBond ? 1.15 : 1.35);
+          ctx.globalAlpha = endFade * latFade * (0.35 + Math.random() * 0.65) * flickerPulse * alpha;
+          const dotSize = (isRigidBond ? 1.48 : (isWeakBond ? 1.15 : 1.35)) * sizeBoost;
           ctx.fillRect(px, py, dotSize, dotSize);
         }
         ctx.globalAlpha = 1.0;
@@ -6534,16 +7030,18 @@ drawList.forEach(item => {
         } else {
           ctx.fillStyle = "#67e8f9";
         }
-        ctx.fillText(`${metric.enthalpy}${polMark}`, midX, midY);
+      ctx.fillText(`${metric.enthalpy}${polMark}`, midX, midY);
       }
-    } else {
-      const { type, delta, qSpec, lpTargets, proj } = item.data;
+      ctx.restore();
+  } else {
+      const { type, delta, qSpec, lpTargets, proj, alpha = 1.0, visScale = visualScale, densityScale = 1.0 } = item.data;
       const spec = ELEMENTS[type] || { symbol: type, color: "#475569", strokeColor: "#cbd5e1", textColor: "#f8fafc" };
 
       if (isClassic3D) {
         // なじみのある立体化学構造式モード（元素記号入り立体球）
-        const sphereR = Math.max(9, Math.min(24, (qSpec.z === 1 ? 0.14 : 0.20) * proj.scale * visualScale));
+        const sphereR = Math.max(6, Math.min(24, (qSpec.z === 1 ? 0.14 : 0.20) * proj.scale * visScale));
         ctx.save();
+        ctx.globalAlpha = alpha;
         ctx.beginPath();
         ctx.arc(proj.x, proj.y, sphereR, 0, Math.PI * 2);
         ctx.fillStyle = spec.color || qSpec.coreColor;
@@ -6587,20 +7085,22 @@ drawList.forEach(item => {
           ctx.fill();
         }
 
-        // 2. 内殻(1s)高密度コア・ミスト（C, N, O）
+     // 2. 内殻(1s)高密度コア・ミスト（C, N, O）
         if (qSpec.z > 1) {
           const innerSpread = coreR * 1.65;
-          for (let i = 0; i < 36; i++) {
+          const innerCount = Math.max(6, Math.round(36 * densityScale));
+          for (let i = 0; i < innerCount; i++) {
             const r = Math.abs(gauss()) * innerSpread;
             const theta = Math.random() * Math.PI * 2;
             const fade = Math.exp(-r / (innerSpread * 1.3));
             ctx.fillStyle = "#94a3b8";
-            ctx.globalAlpha = fade * 0.72;
+            ctx.globalAlpha = fade * 0.72 * alpha;
             ctx.fillRect(proj.x + Math.cos(theta) * r, proj.y + Math.sin(theta) * r, 1.2, 1.2);
           }
         }
 
         // 3. 非共有電子対（ローンペア）の3Dガウス減衰アンバーミスト
+        const lpCount = Math.max(10, Math.round(60 * densityScale));
         lpTargets.forEach(lpPt => {
           if (!lpPt || !lpPt.visible) return;
           const ldx = lpPt.x - proj.x;
@@ -6608,7 +7108,7 @@ drawList.forEach(item => {
           const lLen = Math.hypot(ldx, ldy) || 1;
           const lAngle = Math.atan2(ldy, ldx);
 
-          for (let i = 0; i < 60; i++) {
+          for (let i = 0; i < lpCount; i++) {
             const dist = coreR * 1.1 + Math.abs(gauss()) * (lLen * 0.58);
             const angSpread = gauss() * 0.34;
             const px = proj.x + Math.cos(lAngle + angSpread) * dist;
@@ -6616,12 +7116,12 @@ drawList.forEach(item => {
             const fade = Math.exp(-Math.max(0, dist - coreR) / (lLen * 0.85)) * Math.exp(-(angSpread * angSpread) / 0.2);
 
             ctx.fillStyle = "#fbbf24";
-            ctx.globalAlpha = fade * (0.3 + Math.random() * 0.65);
+            ctx.globalAlpha = fade * (0.3 + Math.random() * 0.65) * alpha;
             ctx.fillRect(px, py, 1.25, 1.25);
           }
         });
 
-        ctx.globalAlpha = 1.0;
+        ctx.globalAlpha = alpha;
 
         // 4. 原子核コア点描画（2Dインスペクタと統一されたコアスタイル）
         ctx.fillStyle = qSpec.coreColor;
@@ -6715,12 +7215,19 @@ drawList.forEach(item => {
     ctx.save();
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
+  const cohE = Number(chemState.lastCohesionE) || 0;
+    const phase = cohE > 45 ? "SOLID/LIQUID" : (cohE > 15 ? "VOLATILE LIQUID" : "GAS PHASE");
+
     if (w < 520) {
       ctx.font = "9.5px monospace";
       ctx.fillStyle = "#34d399";
       ctx.fillText(`BDE:-${totalBDE}kJ | ${isPolar ? `POLAR(${dipoleMag.toFixed(2)})` : "NON-POLAR"}`, 8, 6 + teleOffsetY);
       ctx.fillStyle = weakColor;
       ctx.fillText(`WEAK:${stab.weakestLabel}(${stab.weakestBde}) [${stab.tier}]`, 8, 19 + teleOffsetY);
+      if (isBulk3D) {
+        ctx.fillStyle = "#e879f9";
+        ctx.fillText(`COHESION: -${chemState.lastCohesionE}kJ [${chemState.lastPrimaryForce}]`, 8, 32 + teleOffsetY);
+      }
     } else {
       ctx.font = "10.5px monospace";
       ctx.fillStyle = "#22d3ee";
@@ -6735,12 +7242,24 @@ drawList.forEach(item => {
       ctx.fillText(`STABILITY TIER: ${stab.tierLabel}`, 10, 66 + teleOffsetY);
       ctx.fillStyle = isPolar ? "#fbbf24" : "#94a3b8";
       ctx.fillText(`POLARITY      : ${isPolar ? `POLAR (|u|=${dipoleMag.toFixed(2)} D-eq)` : "NON-POLAR (Symmetric)"}`, 10, 80 + teleOffsetY);
-      ctx.fillStyle = "#64748b";
-      ctx.fillText(`CLOUD KEY     : [CYAN:sigma / PURPLE:pi / AMBER:LonePair]`, 10, 94 + teleOffsetY);
+            if (isBulk3D) {
+        ctx.fillStyle = "#a855f7";
+        ctx.fillText(`BULK COHESION : -${chemState.lastCohesionE} kJ/mol (Est. Total)`, 10, 94 + teleOffsetY);
+        ctx.fillStyle = "#e879f9";
+        ctx.fillText(`PRIMARY FORCE : ${chemState.lastPrimaryForce}`, 10, 108 + teleOffsetY);
+        ctx.fillStyle = "#64748b";
+        ctx.fillText(`CLOUD KEY     : [CYAN:sigma / PURPLE:pi / AMBER:LonePair]`, 10, 122 + teleOffsetY);
+      } else {
+        ctx.fillStyle = "#64748b";
+        ctx.fillText(`CLOUD KEY     : [CYAN:sigma / PURPLE:pi / AMBER:LonePair]`, 10, 94 + teleOffsetY);
+      }
     }
     ctx.restore();
   }
 }
+
+
+
 
 // ======================================================================
 // 【第6章：UIレンダラー ＆ パネル同期モジュール (UI & Inspectors)】
@@ -7283,45 +7802,39 @@ const drillModeBtn = document.getElementById("btn-drill-mode");
     tele3dBtn.classList.toggle("active", chemState.inspector.telemetry3D);
   }
 
-  if (drillModeBtn) {
+if (drillModeBtn) {
     drillModeBtn.style.display = "inline-flex";
-    drillModeBtn.textContent = isDrill ? "ドリル: ON" : "ドリル: OFF";
+    drillModeBtn.textContent = "ドリル";
     drillModeBtn.classList.toggle("active", isDrill);
   }
-  if (typeBtn) {
-    typeBtn.style.display = "inline-flex";
+if (typeBtn) {
+    typeBtn.style.display = isDrill ? "inline-flex" : "none";
     typeBtn.disabled = !isDrill;
-    typeBtn.style.opacity = isDrill ? "1.0" : "0.38";
-    typeBtn.textContent = isMarathon ? "91マラソン" : "基礎診断";
-    typeBtn.classList.toggle("active", isDrill && isMarathon);
+    typeBtn.style.opacity = "1.0";
+    typeBtn.textContent = isMarathon ? "応用" : "基礎";
+    typeBtn.classList.toggle("active", isDrill);
   }
-  if (levelBtn) {
-    const courseLabels = {
-      EVOLUTION: "進化チェーン",
-      FAMILY: "骨格ファミリー",
-      ISOMER: "異性体・比較"
-    };
-    levelBtn.style.display = "inline-flex";
+if (levelBtn) {
+    levelBtn.style.display = isDrill ? "inline-flex" : "none";
     levelBtn.disabled = !isDrill;
-    levelBtn.style.opacity = isDrill ? "1.0" : "0.38";
+    levelBtn.style.opacity = "1.0";
     levelBtn.textContent = isMarathon
-      ? (courseLabels[chemState.drill.marathonCourse] || "進化チェーン")
+      ? (DRILL_COURSE_LABELS[chemState.drill.marathonCourse] || DRILL_COURSE_LABELS.EVOLUTION)
       : `Lv.${chemState.drill.level}`;
   }
 
   if (nextBtn) {
-    nextBtn.style.display = "inline-flex";
+    nextBtn.style.display = isDrill ? "inline-flex" : "none";
     nextBtn.disabled = !isDrill;
-    nextBtn.style.opacity = isDrill ? "1.0" : "0.38";
+    nextBtn.style.opacity = "1.0";
   }
   if (ansBtn) {
-    ansBtn.style.display = "inline-flex";
+    ansBtn.style.display = isDrill ? "inline-flex" : "none";
     ansBtn.disabled = !isDrill;
-    ansBtn.style.opacity = isDrill ? "1.0" : "0.38";
-    ansBtn.textContent = chemState.drill.showingAnswer ? "答え: ON" : "答え: OFF";
+    ansBtn.style.opacity = "1.0";
+    ansBtn.textContent = "答え";
     ansBtn.classList.toggle("active", chemState.drill.showingAnswer && isDrill);
   }
-
 
   elButtons.forEach(btn => {
     btn.style.opacity = isDrill ? "0.45" : "1.0";
@@ -7673,13 +8186,19 @@ const nextBtn = document.getElementById("btn-next-drill");
     });
   }
 
-  const clearBtn = document.getElementById("btn-clear");
+ const clearBtn = document.getElementById("btn-clear");
   if (clearBtn) {
     clearBtn.addEventListener("click", () => {
       if (chemState.drill.active && chemState.drill.showingAnswer) return;
       if (chemState.drill.active && chemState.drill.currentMission) {
         saveSnapshot();
-        chemState.bonds = JSON.parse(JSON.stringify(chemState.drill.currentMission.initialBonds));
+        const mission = chemState.drill.currentMission;
+        chemState.atoms = Array.isArray(mission.initialAtoms)
+          ? JSON.parse(JSON.stringify(mission.initialAtoms))
+          : [];
+        chemState.bonds = Array.isArray(mission.initialBonds)
+          ? JSON.parse(JSON.stringify(mission.initialBonds))
+          : [];
         refreshSimulation();
       } else {
         clearWorkspace(true);
@@ -7759,15 +8278,37 @@ function resizeAllCanvases() {
   const vp2d = document.getElementById("canvas-2d-viewport");
   if (c2d && vp2d) {
     const z = chemState.zoom2D || 1.0;
-    const prevZ = parseFloat(c2d.dataset.prevZoom) || z;
+    const prevZ = parseFloat(c2d.dataset.prevZoom) || 1.0;
     const hasViewport = vp2d.clientWidth > 0 && vp2d.clientHeight > 0;
-    const centerX = hasViewport ? (vp2d.scrollLeft + vp2d.clientWidth / 2) / prevZ : 0;
-    const centerY = hasViewport ? (vp2d.scrollTop + vp2d.clientHeight / 2) / prevZ : 0;
-
     const minW = CHEM_ENV.GRID_PITCH * CHEM_ENV.WORKSPACE_COLS;
     const minH = CHEM_ENV.GRID_PITCH * CHEM_ENV.WORKSPACE_ROWS;
-    const targetW = Math.round(minW * z);
-    const targetH = Math.round(minH * z);
+
+    // カーソル基準アンカーが指定されていれば優先、なければ現在のビューポート中央を基準にする
+    const hasCursorAnchor = c2d.dataset.anchorOffsetX !== undefined && c2d.dataset.anchorOffsetY !== undefined;
+    const offsetX = hasCursorAnchor ? parseFloat(c2d.dataset.anchorOffsetX) : (vp2d.clientWidth / 2);
+    const offsetY = hasCursorAnchor ? parseFloat(c2d.dataset.anchorOffsetY) : (vp2d.clientHeight / 2);
+    delete c2d.dataset.anchorOffsetX;
+    delete c2d.dataset.anchorOffsetY;
+
+    let focusX = hasViewport ? (vp2d.scrollLeft + offsetX) / prevZ : (minW / 2);
+    let focusY = hasViewport ? (vp2d.scrollTop + offsetY) / prevZ : (minH / 2);
+
+    // スクロール位置が0に張り付いている初期状態からのズーム時は配置済み原子の重心（または論理中心）を基準にする
+    if (hasViewport && vp2d.scrollLeft === 0 && vp2d.scrollTop === 0 && !hasCursorAnchor) {
+      if (Array.isArray(chemState.atoms) && chemState.atoms.length > 0) {
+        let sumX = 0, sumY = 0;
+        chemState.atoms.forEach(a => { sumX += a.x; sumY += a.y; });
+        focusX = sumX / chemState.atoms.length;
+        focusY = sumY / chemState.atoms.length;
+      } else {
+        focusX = minW / 2;
+        focusY = minH / 2;
+      }
+    }
+
+    // 縮小時にキャンバスがビューポートより小さくなってscrollLeftが0にリセットされるのを防ぐ
+    const targetW = Math.max(vp2d.clientWidth || 0, Math.round(minW * z));
+    const targetH = Math.max(vp2d.clientHeight || 0, Math.round(minH * z));
     c2d.width = targetW;
     c2d.height = targetH;
     c2d.style.width = `${targetW}px`;
@@ -7775,11 +8316,10 @@ function resizeAllCanvases() {
     c2d.dataset.prevZoom = String(z);
 
     if (hasViewport) {
-      vp2d.scrollLeft = Math.max(0, centerX * z - vp2d.clientWidth / 2);
-      vp2d.scrollTop = Math.max(0, centerY * z - vp2d.clientHeight / 2);
+      vp2d.scrollLeft = Math.max(0, Math.round(focusX * z - offsetX));
+      vp2d.scrollTop = Math.max(0, Math.round(focusY * z - offsetY));
     }
   }
-
   const c3d = document.getElementById("canvas-3d");
   if (c3d && c3d.parentElement) {
     const rect = c3d.parentElement.getBoundingClientRect();
@@ -7788,9 +8328,268 @@ function resizeAllCanvases() {
     c3d.height = Math.max(100, Math.floor(rect.height - headerH));
   }
 
-  render2DCanvas();
+ render2DCanvas();
   render3DViewer();
 }
+
+function initMoleculeGallery() {
+  if (window.__chemGalleryInitialized) return;
+  window.__chemGalleryInitialized = true;
+
+  const captureInitialMethaneAnchor = () => {
+    if (window.__initialMethaneAnchor) return window.__initialMethaneAnchor;
+    const viewport = document.getElementById("canvas-2d-viewport");
+    const canvas = document.getElementById("canvas-2d");
+    if (typeof chemState !== "undefined" && Array.isArray(chemState.atoms) && chemState.atoms.length > 0) {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      chemState.atoms.forEach(a => {
+        if (a.x < minX) minX = a.x;
+        if (a.x > maxX) maxX = a.x;
+        if (a.y < minY) minY = a.y;
+        if (a.y > maxY) maxY = a.y;
+      });
+      window.__initialMethaneAnchor = {
+        cx: Math.round((minX + maxX) / 2),
+        cy: Math.round((minY + maxY) / 2),
+        scrollLeft: viewport ? viewport.scrollLeft : 0,
+        scrollTop: viewport ? viewport.scrollTop : 0
+      };
+      return window.__initialMethaneAnchor;
+    }
+    const fallbackW = canvas ? canvas.width : 960;
+    const fallbackH = canvas ? canvas.height : 720;
+    const viewW = (viewport && viewport.clientWidth > 0) ? viewport.clientWidth : 480;
+    const viewH = (viewport && viewport.clientHeight > 0) ? viewport.clientHeight : 360;
+    return {
+      cx: Math.round(fallbackW / 2),
+      cy: Math.round(fallbackH / 2),
+      scrollLeft: Math.max(0, Math.round(fallbackW / 2 - viewW / 2)),
+      scrollTop: Math.max(0, Math.round(fallbackH / 2 - viewH / 2))
+    };
+  };
+
+  setTimeout(captureInitialMethaneAnchor, 0);
+
+  const drillGroup = document.getElementById("group-drill");
+  if (drillGroup && !document.getElementById("btn-gallery-toggle")) {
+    const galleryGroup = document.createElement("div");
+    galleryGroup.className = "btn-group";
+    galleryGroup.id = "group-gallery";
+    const btn = document.createElement("button");
+    btn.id = "btn-gallery-toggle";
+    btn.type = "button";
+    btn.textContent = "図鑑";
+    galleryGroup.appendChild(btn);
+    drillGroup.parentNode.insertBefore(galleryGroup, drillGroup);
+  }
+
+const syncGalleryToggleActive = (isOpen) => {
+    const toggleBtn = document.getElementById("btn-gallery-toggle");
+    if (toggleBtn) toggleBtn.classList.toggle("active", Boolean(isOpen));
+  };
+
+  const buildGalleryModal = () => {
+    let modal = document.getElementById("gallery-modal");
+    if (modal) return modal;
+
+    modal = document.createElement("div");
+    modal.id = "gallery-modal";
+
+    const header = document.createElement("div");
+    header.style.cssText = "display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:6px; flex-shrink:0;";
+
+    const title = document.createElement("div");
+    title.textContent = `図鑑 (全${MOLECULE_DB.length}種) - タップで2D/3D即時展開`;
+    title.style.cssText = "color:#38bdf8; font-weight:bold; font-size:12px;";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.textContent = "閉じる";
+    closeBtn.style.cssText = "background:#ef4444; border:none; color:#fff; padding:4px 12px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;";
+    closeBtn.addEventListener("click", () => {
+      modal.classList.remove("open");
+      syncGalleryToggleActive(false);
+    });
+
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    modal.appendChild(header);
+
+    const grid = document.createElement("div");
+    grid.className = "gallery-grid";
+
+    MOLECULE_DB.forEach(mol => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "gallery-btn";
+      btn.title = `${mol.name} (${mol.formula})`;
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "g-name";
+      nameSpan.textContent = mol.name.split(" (")[0];
+
+      const formulaSpan = document.createElement("span");
+      formulaSpan.className = "g-formula";
+      formulaSpan.textContent = mol.formula;
+
+      btn.appendChild(nameSpan);
+      btn.appendChild(formulaSpan);
+
+      btn.addEventListener("click", () => {
+        if (chemState.drill.active) {
+          chemState.drill.active = false;
+          chemState.drill.showingAnswer = false;
+          chemState.drill.currentMission = null;
+          chemState.drill.savedUserBonds = null;
+          syncDrillToolbarUI();
+        }
+
+        const anchor = captureInitialMethaneAnchor();
+        const viewport = document.getElementById("canvas-2d-viewport");
+        const canvas = document.getElementById("canvas-2d");
+        const viewW = (viewport && viewport.clientWidth > 0) ? viewport.clientWidth : (canvas ? canvas.width : 480);
+        const viewH = (viewport && viewport.clientHeight > 0) ? viewport.clientHeight : (canvas ? canvas.height : 360);
+
+        const srcAtoms = (mol.model3D && mol.model3D.atoms) ? mol.model3D.atoms : [];
+        const srcBonds = (mol.model3D && mol.model3D.bonds) ? mol.model3D.bonds : [];
+
+        const projected = srcAtoms.map(a => ({
+          type: a.type,
+          px: (a.x || 0) + (a.z || 0) * 0.35,
+          py: (a.y || 0) - (a.z || 0) * 0.25
+        }));
+
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        projected.forEach(p => {
+          if (p.px < minX) minX = p.px;
+          if (p.px > maxX) maxX = p.px;
+          if (p.py < minY) minY = p.py;
+          if (p.py > maxY) maxY = p.py;
+        });
+
+        const spanX = Math.max(0.5, maxX - minX);
+        const spanY = Math.max(0.5, maxY - minY);
+        const targetW = Math.min(viewW * 0.65, 340);
+        const targetH = Math.min(viewH * 0.65, 260);
+        const scale = Math.min(targetW / spanX, targetH / spanY, 64);
+        const midX = isFinite(minX) ? (minX + maxX) / 2 : 0;
+        const midY = isFinite(minY) ? (minY + maxY) / 2 : 0;
+
+        chemState.atoms = projected.map((p, idx) => ({
+          id: `A_${idx + 1}`,
+          type: p.type,
+          x: Math.round(anchor.cx + (p.px - midX) * scale),
+          y: Math.round(anchor.cy + (p.py - midY) * scale)
+        }));
+
+        if (viewport) {
+          viewport.scrollLeft = anchor.scrollLeft;
+          viewport.scrollTop = anchor.scrollTop;
+        }
+
+        chemState.bonds = srcBonds.map((b, idx) => ({
+          id: `B_${idx + 1}`,
+          from: chemState.atoms[b.from].id,
+          to: chemState.atoms[b.to].id,
+          order: b.order
+        }));
+
+        chemState.nextAtomId = chemState.atoms.length + 1;
+        chemState.nextBondId = chemState.bonds.length + 1;
+        chemState.inspector.targetAtomId = chemState.atoms[0] ? chemState.atoms[0].id : null;
+        chemState.history.length = 0;
+        chemState.isEraseMode = false;
+
+     modal.classList.remove("open");
+        syncGalleryToggleActive(false);
+        refreshSimulation();
+      });
+
+      grid.appendChild(btn);
+    });
+
+    modal.appendChild(grid);
+    modal.style.position = "fixed";
+    modal.style.zIndex = "9999";
+    document.body.appendChild(modal);
+    return modal;
+  };
+
+  document.addEventListener("click", (e) => {
+    const galleryTrigger = e.target.closest("#btn-gallery-toggle");
+    if (galleryTrigger) {
+      e.stopPropagation();
+      const modal = buildGalleryModal();
+      const viewport = document.getElementById("canvas-2d-viewport");
+      if (viewport) {
+        const rect = viewport.getBoundingClientRect();
+        if (rect.width > 120 && rect.height > 120) {
+          modal.style.left = `${Math.round(rect.left + 8)}px`;
+          modal.style.top = `${Math.round(rect.top + 8)}px`;
+          modal.style.width = `${Math.round(rect.width - 16)}px`;
+          modal.style.height = `${Math.round(rect.height - 16)}px`;
+        }
+      }
+      const isNowOpen = modal.classList.toggle("open");
+      syncGalleryToggleActive(isNowOpen);
+      return;
+    }
+
+    const anyDrillBtn = e.target.closest("#group-drill button");
+    if (anyDrillBtn) {
+      const modal = document.getElementById("gallery-modal");
+      if (modal) {
+        modal.classList.remove("open");
+        syncGalleryToggleActive(false);
+      }
+    }
+  }, true);
+}
+
+function initWheelZoom2D() {
+  if (window.__chemWheelZoomInitialized) return;
+  window.__chemWheelZoomInitialized = true;
+
+  const viewport = document.getElementById("canvas-2d-viewport") || document.getElementById("canvas-2d");
+  if (!viewport) return;
+
+  viewport.addEventListener("wheel", (e) => {
+    const modal = document.getElementById("gallery-modal");
+    if (modal && modal.classList.contains("open")) return;
+
+ e.preventDefault();
+    const current = Number(chemState.zoom2D) || 1.0;
+    const step = e.deltaY < 0 ? 0.1 : -0.1;
+    const next = Math.min(2.5, Math.max(0.5, Math.round((current + step) * 100) / 100));
+    if (next === current) return;
+
+    const c2d = document.getElementById("canvas-2d");
+    const vp2d = document.getElementById("canvas-2d-viewport");
+    if (c2d && vp2d) {
+      c2d.dataset.prevZoom = String(current);
+      const rect = vp2d.getBoundingClientRect();
+      c2d.dataset.anchorOffsetX = String(Math.max(0, Math.min(vp2d.clientWidth, e.clientX - rect.left)));
+      c2d.dataset.anchorOffsetY = String(Math.max(0, Math.min(vp2d.clientHeight, e.clientY - rect.top)));
+    }
+
+    chemState.zoom2D = next;
+
+    document.querySelectorAll('input[type="range"]').forEach(sl => {
+      if (sl.id !== "zoom-slider") {
+        sl.value = String(next);
+        sl.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
+
+    if (typeof resizeAllCanvases === "function") {
+      resizeAllCanvases();
+    } else if (typeof refreshSimulation === "function") {
+      refreshSimulation();
+    }
+  }, { passive: false });
+}
+
+
 // ======================================================================
 // 【第8章：全自動テストスイート ＆ システム初期化 (Automated QA & Boot)】
 // 収録分子辞書の指紋一意性監査、初期サンプル配置、および起動シーケンス
@@ -7840,12 +8639,20 @@ function initApp() {
   window.addEventListener("resize", resizeAllCanvases);
   resizeAllCanvases();
 
-// 初回起動時は「メタン (CH4)」が完成した状態で立ち上げ、即座に3D回転を体験可能にする
-  loadStarterMethane();
+// 初回起動時は空の2D面から開始し、H2O作成〜ドリル誘導ガイドを表示する
+  chemState.atoms = [];
+  chemState.bonds = [];
+  chemState.showStarterGuide = true;
+  const vp = document.getElementById("canvas-2d-viewport");
+  if (vp) {
+    const cx = (CHEM_ENV.GRID_PITCH * CHEM_ENV.WORKSPACE_COLS) * 0.5;
+    const cy = (CHEM_ENV.GRID_PITCH * CHEM_ENV.WORKSPACE_ROWS) * 0.5;
+    vp.scrollLeft = Math.max(0, Math.round(cx - vp.clientWidth * 0.5));
+    vp.scrollTop = Math.max(0, Math.round(cy - vp.clientHeight * 0.5));
+  }
   refreshSimulation();
   renderDevLogs();
 }
-
 
 
 
@@ -7868,6 +8675,22 @@ const devLogs = [
       "【次回実装予定】"
     ]
   },
+{
+    "tag": "v1.1.0-pre-test",
+    "date": "2026-11-24",
+    "title": "3Dバルク表示の実装とテストプレイ準備完了",
+    "details": [
+      "2Dキャンバスにおいて、原子価の過不足を示すインジケータ（+/-）を原子円の上端（12時方向）に最前面バッジとして一括描画するよう修正し、視認性を大幅に向上させた。",
+      "3Dビューアにおいて「構成: 単体 / 3x3x3」のトグルボタンを追加し、元のモデルデータを維持したまま27分子の立体空間ネットワークを展開・描画する処理を実装した。",
+      "3x3x3表示時の量子クラウドモードにおいて、中心分子（高密度）と周辺26分子（軽量ミスト）の粒子密度を自動間引きし、スマートフォン実機での回転描画負荷を低減した。",
+      "隣接分子間の距離と極性（delta）に基づき、分子間相互作用（水素結合、双極子引力、分散力/πスタッキング）を自動判定し、色と太さを変えた破線で描画する機能を実装した。",
+      "中央分子が受ける分子間エネルギーを概算して積算し、テレメトリHUDに「BULK COHESION（凝集エネルギー）」と「PRIMARY FORCE（主たる相互作用）」として追加表示した。",
+      "アセトン等の双極子引力が水素結合として誤判定されないよう、判定条件に水素原子自身の部分正電荷（delta > 0.08）の閾値を追加して化学的精度を高めた。",
+      "【次回実装予定】友人とのテストプレイを実施し、そのフィードバックを踏まえたうえで、生体分子や有機化合物を中心とした図鑑データベース（MOLECULE_DB）の大幅な拡充を行う。"
+    ]
+  },
+
+
 {
     tag: "UPDATE",
     date: "2026-11-20",
@@ -7916,249 +8739,9 @@ function renderDevLogs() {
   `).join("");
 }
 
-window.addEventListener("DOMContentLoaded", initApp);
-
-
-function initMoleculeGallery() {
-  if (window.__chemGalleryInitialized) return;
-  window.__chemGalleryInitialized = true;
-
-  const captureInitialMethaneAnchor = () => {
-    if (window.__initialMethaneAnchor) return window.__initialMethaneAnchor;
-    const viewport = document.getElementById("canvas-2d-viewport");
-    const canvas = document.getElementById("canvas-2d");
-    if (typeof chemState !== "undefined" && Array.isArray(chemState.atoms) && chemState.atoms.length > 0) {
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      chemState.atoms.forEach(a => {
-        if (a.x < minX) minX = a.x;
-        if (a.x > maxX) maxX = a.x;
-        if (a.y < minY) minY = a.y;
-        if (a.y > maxY) maxY = a.y;
-      });
-      window.__initialMethaneAnchor = {
-        cx: Math.round((minX + maxX) / 2),
-        cy: Math.round((minY + maxY) / 2),
-        scrollLeft: viewport ? viewport.scrollLeft : 0,
-        scrollTop: viewport ? viewport.scrollTop : 0
-      };
-      return window.__initialMethaneAnchor;
-    }
-    const fallbackW = canvas ? canvas.width : 960;
-    const fallbackH = canvas ? canvas.height : 720;
-    const viewW = (viewport && viewport.clientWidth > 0) ? viewport.clientWidth : 480;
-    const viewH = (viewport && viewport.clientHeight > 0) ? viewport.clientHeight : 360;
-    return {
-      cx: Math.round(fallbackW / 2),
-      cy: Math.round(fallbackH / 2),
-      scrollLeft: Math.max(0, Math.round(fallbackW / 2 - viewW / 2)),
-      scrollTop: Math.max(0, Math.round(fallbackH / 2 - viewH / 2))
-    };
-  };
-
-  setTimeout(captureInitialMethaneAnchor, 0);
-
-  const drillGroup = document.getElementById("group-drill");  if (drillGroup && !document.getElementById("btn-gallery-toggle")) {
-    const galleryGroup = document.createElement("div");
-    galleryGroup.className = "btn-group";
-    galleryGroup.id = "group-gallery";
-    const btn = document.createElement("button");
-    btn.id = "btn-gallery-toggle";
-    btn.type = "button";
-    btn.textContent = "分子図鑑";
-    galleryGroup.appendChild(btn);
-    drillGroup.parentNode.insertBefore(galleryGroup, drillGroup);
-  }
-
-  const buildGalleryModal = () => {
-    let modal = document.getElementById("gallery-modal");
-    if (modal) return modal;
-
-    modal = document.createElement("div");
-    modal.id = "gallery-modal";
-
-    const header = document.createElement("div");
-    header.style.cssText = "display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:6px; flex-shrink:0;";
-
-    const title = document.createElement("div");
-    title.textContent = `分子図鑑 (全${MOLECULE_DB.length}種) - タップで2D/3D即時展開`;
-    title.style.cssText = "color:#38bdf8; font-weight:bold; font-size:12px;";
-
-    const closeBtn = document.createElement("button");
-    closeBtn.type = "button";
-    closeBtn.textContent = "閉じる";
-    closeBtn.style.cssText = "background:#ef4444; border:none; color:#fff; padding:4px 12px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;";
-    closeBtn.addEventListener("click", () => modal.classList.remove("open"));
-
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-    modal.appendChild(header);
-
-    const grid = document.createElement("div");
-    grid.className = "gallery-grid";
-
-    MOLECULE_DB.forEach(mol => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "gallery-btn";
-      btn.title = `${mol.name} (${mol.formula})`;
-
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "g-name";
-      nameSpan.textContent = mol.name.split(" (")[0];
-
-      const formulaSpan = document.createElement("span");
-      formulaSpan.className = "g-formula";
-      formulaSpan.textContent = mol.formula;
-
-      btn.appendChild(nameSpan);
-      btn.appendChild(formulaSpan);
-
-   btn.addEventListener("click", () => {
-        if (chemState.drill.active) {
-          chemState.drill.active = false;
-          chemState.drill.showingAnswer = false;
-          chemState.drill.currentMission = null;
-          chemState.drill.savedUserBonds = null;
-          syncDrillToolbarUI();
-        }
-
-       const anchor = captureInitialMethaneAnchor();
-            const viewport = document.getElementById("canvas-2d-viewport");
-            const canvas = document.getElementById("canvas-2d");
-            const viewW = (viewport && viewport.clientWidth > 0) ? viewport.clientWidth : (canvas ? canvas.width : 480);
-            const viewH = (viewport && viewport.clientHeight > 0) ? viewport.clientHeight : (canvas ? canvas.height : 360);
-
-            const srcAtoms = (mol.model3D && mol.model3D.atoms) ? mol.model3D.atoms : [];
-            const srcBonds = (mol.model3D && mol.model3D.bonds) ? mol.model3D.bonds : [];
-
-            const projected = srcAtoms.map(a => ({
-              type: a.type,
-              px: (a.x || 0) + (a.z || 0) * 0.35,
-              py: (a.y || 0) - (a.z || 0) * 0.25
-            }));
-
-            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-            projected.forEach(p => {
-              if (p.px < minX) minX = p.px;
-              if (p.px > maxX) maxX = p.px;
-              if (p.py < minY) minY = p.py;
-              if (p.py > maxY) maxY = p.py;
-            });
-
-            const spanX = Math.max(0.5, maxX - minX);
-            const spanY = Math.max(0.5, maxY - minY);
-            const targetW = Math.min(viewW * 0.65, 340);
-            const targetH = Math.min(viewH * 0.65, 260);
-            const scale = Math.min(targetW / spanX, targetH / spanY, 64);
-            const midX = isFinite(minX) ? (minX + maxX) / 2 : 0;
-            const midY = isFinite(minY) ? (minY + maxY) / 2 : 0;
-
-            chemState.atoms = projected.map((p, idx) => ({
-              id: `A_${idx + 1}`,
-              type: p.type,
-              x: Math.round(anchor.cx + (p.px - midX) * scale),
-              y: Math.round(anchor.cy + (p.py - midY) * scale)
-            }));
-
-            if (viewport) {
-              viewport.scrollLeft = anchor.scrollLeft;
-              viewport.scrollTop = anchor.scrollTop;
-            }
-
-        chemState.bonds = srcBonds.map((b, idx) => ({
-          id: `B_${idx + 1}`,
-          from: chemState.atoms[b.from].id,
-          to: chemState.atoms[b.to].id,
-          order: b.order
-        }));
-
-        chemState.nextAtomId = chemState.atoms.length + 1;
-        chemState.nextBondId = chemState.bonds.length + 1;
-        chemState.inspector.targetAtomId = chemState.atoms[0] ? chemState.atoms[0].id : null;
-        chemState.history.length = 0;
-        chemState.isEraseMode = false;
-
-        modal.classList.remove("open");
-        refreshSimulation();
-      });
-
-      grid.appendChild(btn);
-    });
-
- modal.appendChild(grid);
-    modal.style.position = "fixed";
-    modal.style.zIndex = "9999";
-    document.body.appendChild(modal);
-    return modal;
-  };
-
-  document.addEventListener("click", (e) => {
- const galleryTrigger = e.target.closest("#btn-gallery-toggle");
-    if (galleryTrigger) {
-      e.stopPropagation();
-      const modal = buildGalleryModal();
-      const viewport = document.getElementById("canvas-2d-viewport");
-      if (viewport) {
-        const rect = viewport.getBoundingClientRect();
-        if (rect.width > 120 && rect.height > 120) {
-          modal.style.left = `${Math.round(rect.left + 8)}px`;
-          modal.style.top = `${Math.round(rect.top + 8)}px`;
-          modal.style.width = `${Math.round(rect.width - 16)}px`;
-          modal.style.height = `${Math.round(rect.height - 16)}px`;
-        }
-      }
-      modal.classList.toggle("open");
-      return;
-    }
-
-  const anyDrillBtn = e.target.closest("#group-drill button");
-    if (anyDrillBtn) {
-      const modal = document.getElementById("gallery-modal");
-      if (modal) modal.classList.remove("open");
-    }
-  }, true);
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initMoleculeGallery);
-} else {
-  initMoleculeGallery();
-}
-
-function initWheelZoom2D() {
-  if (window.__chemWheelZoomInitialized) return;
-  window.__chemWheelZoomInitialized = true;
-
-  const viewport = document.getElementById("canvas-2d-viewport") || document.getElementById("canvas-2d");
-  if (!viewport) return;
-
-  viewport.addEventListener("wheel", (e) => {
-    const modal = document.getElementById("gallery-modal");
-    if (modal && modal.classList.contains("open")) return;
-
-    e.preventDefault();
-    const current = Number(chemState.zoom2D) || 1.0;
-    const step = e.deltaY < 0 ? 0.1 : -0.1;
-    const next = Math.min(2.5, Math.max(0.5, Math.round((current + step) * 100) / 100));
-    if (next === current) return;
-
-    chemState.zoom2D = next;
-
-    document.querySelectorAll('input[type="range"]').forEach(sl => {
-      if (sl.id !== "zoom-slider") {
-        sl.value = String(next);
-        sl.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-    });
-
-    if (typeof refreshSimulation === "function") {
-      refreshSimulation();
-    }
-  }, { passive: false });
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initWheelZoom2D);
-} else {
-  initWheelZoom2D();
-}
+window.addEventListener("DOMContentLoaded", () => {
+  initApp();
+  if (typeof initMoleculeGallery === "function") initMoleculeGallery();
+  if (typeof initWheelZoom2D === "function") initWheelZoom2D();
+  if (typeof initAutoAlign2D === "function") initAutoAlign2D();
+});

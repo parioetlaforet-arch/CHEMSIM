@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -632,27 +630,25 @@
      </div>
    </div>
 
-   <!-- L字下辺ツールバー: [修正系] -> [観察系] -> [演習系] の操作頻度順 -->
+<!-- L字下辺ツールバー: [修正系] -> [演習系] -> [観察系] の操作頻度順 -->
   <div id="toolbar">
      <div class="btn-group" id="group-edit">
        <button id="btn-undo">1手戻す</button>
        <button id="btn-erase-mode" class="danger">削除</button>
-
        <button id="btn-clear">全消去</button>
      </div>
-
-<div class="btn-group" id="group-gallery">
-       <button id="btn-gallery-toggle" type="button">分子図鑑</button>
-     </div>
-     <div class="btn-group" id="group-drill">
-       <button id="btn-drill-mode">ドリル: OFF</button>
-       <button id="btn-drill-type" style="display: none;">基礎診断</button>
-
-　    <button id="btn-drill-level" style="display: none;">Lv.1</button>
+   <div class="btn-group" id="group-drill">
+       <button id="btn-drill-mode">ドリル</button>
+       <button id="btn-drill-type" style="display: none;">基礎</button>
+       <button id="btn-drill-level" style="display: none;">Lv.1</button>
        <button id="btn-next-drill" style="display: none;">次の問題</button>
-       <button id="btn-answer-toggle" style="display: none;">答え: OFF</button>
+       <button id="btn-answer-toggle" style="display: none;">答え</button>
+     </div>
+     <div class="btn-group" id="group-gallery">
+       <button id="btn-gallery-toggle" type="button">図鑑</button>
      </div>
    </div>
+
 
 <details id="guide-drawer" ontoggle="if (typeof renderDynamicHintGuide === 'function') renderDynamicHintGuide(); if (typeof resizeAllCanvases === 'function') resizeAllCanvases();">
      <summary>
@@ -684,4 +680,3 @@
    <script src="app.js"></script>
 </body>
 </html>
-
