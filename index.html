@@ -106,9 +106,80 @@
          text-overflow: ellipsis;
        }
        #atom-count-label, .zoom-control, .zoom-control button { white-space: nowrap; flex-shrink: 0; }
-       .zoom-control input[type="range"] { width: 48px; }
+     .zoom-control input[type="range"] { width: 48px; }
        .zoom-control button { padding: 2px 4px !important; font-size: 10px !important; }
        #integrated-dashboard #molecule-detail { font-size: 10.5px; line-height: 1.3; }
+     }
+
+     /* スマホ横画面（低ハイト環境）専用：左右2カラム維持＋上下バー圧縮 */
+     @media (orientation: landscape) and (max-height: 540px) {
+       #integrated-dashboard {
+         padding: 3px 8px;
+         gap: 2px;
+         max-height: 58px;
+         overflow-y: auto;
+       }
+       .dashboard-top { gap: 6px; }
+       #integrated-dashboard #status-badge { font-size: 10.5px; padding: 1px 5px; }
+       #live-formula-bar, #drill-banner { font-size: 10.5px; padding: 1px 6px; }
+       #discovery-counter { font-size: 10.5px; }
+       .dashboard-bottom {
+         font-size: 10.5px;
+         white-space: nowrap;
+         overflow: hidden;
+         text-overflow: ellipsis;
+       }
+       #integrated-dashboard #molecule-detail { display: none; }
+
+       body [data-chemsim-pane-header="aligned"],
+       .pane-header {
+         height: 25px !important;
+         min-height: 25px !important;
+         max-height: 25px !important;
+         padding: 0 6px !important;
+         font-size: 11px !important;
+       }
+       body [data-chemsim-pane-header="aligned"] button,
+       .zoom-control button {
+         height: 20px !important;
+         min-height: 20px !important;
+         padding: 0 5px !important;
+         font-size: 10px !important;
+       }
+       #element-palette {
+         width: 40px;
+         padding: 2px;
+         gap: 3px;
+       }
+       #element-palette .el-btn {
+         padding: 3px 0;
+         font-size: 10px;
+       }
+       #toolbar {
+         min-height: 28px;
+         padding: 2px 6px;
+         gap: 6px;
+       }
+       #toolbar button {
+         height: 22px;
+         padding: 0 6px;
+         font-size: 10.5px;
+       }
+       #guide-drawer summary {
+         padding: 2px 8px;
+         font-size: 10px;
+       }
+       #quantum-inspector-hud {
+         width: min(320px, 46vw) !important;
+         max-width: min(320px, 46vw) !important;
+         max-height: calc(100dvh - 110px) !important;
+       }
+       #gallery-modal {
+         top: 34px;
+         left: 44px;
+         width: calc(100vw - 56px);
+         height: calc(100dvh - 72px);
+       }
      }
 
      .pane {
@@ -592,22 +663,23 @@
     <div class="pane">
        <div class="pane-header">
          <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">[構造設計]</span>
-    <div class="zoom-control">
-           <span>ZOOM</span>
-           <input type="range" id="zoom-slider-2d" min="0.4" max="2.0" step="0.1" value="1.0">
-           <button id="btn-inspector-toggle" style="padding: 2px 6px; font-size: 11px; margin-left: 8px;">電子観察: OFF</button>
-           <button id="btn-autosnap-toggle" style="padding: 2px 6px; font-size: 11px;">スナップ: OFF</button>
+
+
+<div class="zoom-control">
+           <button id="btn-inspector-toggle" title="電子観察" aria-label="電子観察" style="padding: 3px 6px; display: inline-flex; align-items: center; justify-content: center;">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"></circle><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(30 12 12)"></ellipse><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-30 12 12)"></ellipse></svg>
+          </button>
+           <button id="btn-autosnap-toggle" title="自動スナップ" aria-label="自動スナップ" style="padding: 3px 6px; display: inline-flex; align-items: center; justify-content: center;">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v8a6 6 0 0 0 12 0V3h-4v8a2 2 0 0 1-4 0V3H6z"></path><line x1="6" y1="7" x2="10" y2="7"></line><line x1="14" y1="7" x2="18" y2="7"></line></svg>
+           </button>
+
            <span id="atom-count-label" style="margin-left: 8px;">原子数: 0</span>
          </div>
        </div>
-     <div id="puzzle-stage">
-         <div id="element-palette">
-           <button class="el-btn" data-el="C">C (4)</button>
-           <button class="el-btn" data-el="H">H (1)</button>
-           <button class="el-btn" data-el="O">O (2)</button>
-           <button class="el-btn" data-el="N">N (3)</button>
-         </div>
+    <div id="puzzle-stage">
+         <div id="element-palette"></div>
         <div id="carbon-mode-menu" role="menu"></div>
+
          <div id="canvas-2d-viewport">
            <canvas id="canvas-2d"></canvas>
          </div>
@@ -618,13 +690,21 @@
      <div class="pane">
        <div class="pane-header">
          <span>[立体構造]</span>
-       <div class="zoom-control">
-           <span>ZOOM</span>
-           <input type="range" id="zoom-slider" min="0.4" max="2.5" step="0.05" value="1.0">
-           <button id="btn-tele3d-toggle" style="padding: 2px 6px; font-size: 11px;">3Dテレメトリ: ON</button>
-           <button id="btn-auto-rotate" style="padding: 2px 6px; font-size: 11px;">自動回転</button>
-           <button id="btn-reset-cam" style="padding: 2px 6px; font-size: 11px;">正面</button>
+
+
+     <div class="zoom-control">
+           <button id="btn-tele3d-toggle" title="3Dテレメトリ" aria-label="3Dテレメトリ" style="padding: 3px 6px; display: inline-flex; align-items: center; justify-content: center;">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+           </button>
+           <button id="btn-auto-rotate" title="自動回転" aria-label="自動回転" style="padding: 3px 6px; display: inline-flex; align-items: center; justify-content: center;">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+           </button>
+           <button id="btn-reset-cam" title="正面（視点リセット）" aria-label="正面（視点リセット）" style="padding: 3px 6px; display: inline-flex; align-items: center; justify-content: center;">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+           </button>
          </div>
+
+
        </div>
        <canvas id="canvas-3d"></canvas>
      </div>
@@ -633,19 +713,27 @@
 <!-- L字下辺ツールバー: [修正系] -> [演習系] -> [観察系] の操作頻度順 -->
   <div id="toolbar">
      <div class="btn-group" id="group-edit">
-       <button id="btn-undo">1手戻す</button>
-       <button id="btn-erase-mode" class="danger">削除</button>
-       <button id="btn-clear">全消去</button>
+       <button id="btn-undo" title="1手戻す" aria-label="1手戻す" style="padding: 4px 8px; display: inline-flex; align-items: center; justify-content: center;">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"></path></svg>
+       </button>
+       <button id="btn-erase-mode" title="消しゴム（個別削除）" aria-label="消しゴム（個別削除）" style="padding: 4px 8px; display: inline-flex; align-items: center; justify-content: center;">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path><path d="M22 21H7"></path><path d="m5 11 9 9"></path></svg>
+       </button>
+       <button id="btn-clear" class="danger" title="全消去" aria-label="全消去" style="padding: 4px 8px; display: inline-flex; align-items: center; justify-content: center;">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+       </button>
      </div>
-   <div class="btn-group" id="group-drill">
-       <button id="btn-drill-mode">ドリル</button>
-       <button id="btn-drill-type" style="display: none;">基礎</button>
-       <button id="btn-drill-level" style="display: none;">Lv.1</button>
-       <button id="btn-next-drill" style="display: none;">次の問題</button>
-       <button id="btn-answer-toggle" style="display: none;">答え</button>
+  <div class="btn-group" id="group-drill">
+       <button id="btn-drill-mode" title="演習ドリルモード切替">DRILL</button>
+      <button id="btn-drill-type" style="display: none;" title="出題形式切替（BASIC: 基礎 / ADV: 応用マラソン）">BASIC</button>
+       <button id="btn-drill-level" style="display: none;" title="難易度・コース切替（1:DERIV 誘導体 / 2:FUNC 官能基 / 3:ISOMER 異性体 / 4:BIO 生体 / 5:HETERO ヘテロ / 6:SCALE 骨格）">LV.1</button>
+       <button id="btn-next-drill" style="display: none;" title="次の問題へ進む">NEXT</button>
+       <button id="btn-answer-toggle" style="display: none;" title="解答の表示・非表示">ANS</button>
      </div>
      <div class="btn-group" id="group-gallery">
-       <button id="btn-gallery-toggle" type="button">図鑑</button>
+       <button id="btn-gallery-toggle" type="button" title="分子図鑑" aria-label="分子図鑑" style="padding: 4px 8px; display: inline-flex; align-items: center; justify-content: center;">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>
+       </button>
      </div>
    </div>
 
@@ -666,9 +754,13 @@
 
       <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; margin-bottom: 8px;">
          <h3 id="hint-list-title" style="margin: 0;">コンプリートヒント集（自動連動）</h3>
-         <div style="display: flex; gap: 6px;">
+       <div style="display: flex; flex-wrap: wrap; gap: 6px;">
            <button type="button" id="hint-filter-all" onclick="setHintFilterMode('all')" style="padding: 4px 10px; font-size: 12px; border-radius: 4px; border: 1px solid #38bdf8; background: #0284c7; color: #f8fafc; cursor: pointer;">すべて</button>
            <button type="button" id="hint-filter-undiscovered" onclick="setHintFilterMode('undiscovered')" style="padding: 4px 10px; font-size: 12px; border-radius: 4px; border: 1px solid #475569; background: #1e293b; color: #cbd5e1; cursor: pointer;">未発見のみ</button>
+           <button type="button" id="hint-sort-order" onclick="setHintSortMode('order')" style="padding: 4px 10px; font-size: 12px; border-radius: 4px; border: 1px solid #38bdf8; background: #0284c7; color: #f8fafc; cursor: pointer;">登録順</button>
+           <button type="button" id="hint-sort-undiscovered" onclick="setHintSortMode('undiscovered')" style="padding: 4px 10px; font-size: 12px; border-radius: 4px; border: 1px solid #475569; background: #1e293b; color: #cbd5e1; cursor: pointer;">未発見優先</button>
+           <button type="button" id="hint-sort-formula" onclick="setHintSortMode('formula')" style="padding: 4px 10px; font-size: 12px; border-radius: 4px; border: 1px solid #475569; background: #1e293b; color: #cbd5e1; cursor: pointer;">分子式順</button>
+           <button type="button" id="hint-sort-name" onclick="setHintSortMode('nameAlpha')" style="padding: 4px 10px; font-size: 12px; border-radius: 4px; border: 1px solid #475569; background: #1e293b; color: #cbd5e1; cursor: pointer;">英名A-Z</button>
          </div>
        </div>
        <div id="hint-grid-container" class="hint-grid"></div>

@@ -1,9 +1,8 @@
-
  /* ms.morimoto <Laforet Pario <parioetlaforet@gmail.com>  */
 
-	 /*2026年11月24日 15:22*/
+	 /*2026年11月25日 15:22*/
 
-    /* parioetlaforet@Gmail.com  M.morimoto   11_18_2026  */
+    /* parioetlaforet@Gmail.com  M.morimoto   11_25_2026  */
 // ======================================================================
 // 【第1章：基盤環境・幾何座標・システム設定 (Environment & Layout)】
 // 2D作業キャンバス寸法、グリッド吸着ピッチ、3Dビューア基本定数
@@ -11,7 +10,7 @@
 const CHEM_ENV = {
   GRID_PITCH: 32,
   WORKSPACE_COLS: 50,
-  WORKSPACE_ROWS: 50,   
+  WORKSPACE_ROWS: 50,
   DRAG_THRESHOLD: 10,
   MAX_ATOMS: 120,
   HIT_RADIUS_ATOM: 28,
@@ -49,6 +48,7 @@ const ELEMENTS = {
 
 
 const MOLECULE_DB = [
+
   {
     id: "H2O",
     formula: "H2O",
@@ -68,6 +68,7 @@ const MOLECULE_DB = [
       ]
     }
   },
+
   {
     id: "CH4",
     formula: "CH4",
@@ -3643,38 +3644,7 @@ const MOLECULE_DB = [
       ]
     }
   },
-  {
-    id: "GLYCINE",
-    formula: "C2H5NO2",
-    name: "グリシン (Glycine)",
-    geometry: "最も単純なアミノ酸 (H2N-CH2-COOH)",
-    signature: "C(C-1,H-1,H-1,N-1)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(O-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-2)",
-    desc: "コラーゲンの約3分の1を占め、睡眠の質を高める機能性成分としても知られる最小のアミノ酸だ。20種の標準アミノ酸の中で唯一光学異性体を持たず、隕石や彗星の塵からも発見されている宇宙最古級の生命分子である。",
-    model3D: {
-      atoms: [
-        { type: "C", x: -0.45, y: 0.15, z: 0.00 },
-        { type: "C", x: 0.98, y: -0.25, z: 0.00 },
-        { type: "N", x: -1.35, y: -0.98, z: 0.00 },
-        { type: "O", x: 1.38, y: -1.40, z: 0.00 },
-        { type: "O", x: 1.82, y: 0.80, z: 0.00 },
-        { type: "H", x: -0.62, y: 0.78, z: 0.89 },
-        { type: "H", x: -0.62, y: 0.78, z: -0.89 },
-        { type: "H", x: -2.30, y: -0.65, z: 0.00 },
-        { type: "H", x: -1.18, y: -1.55, z: 0.82 },
-        { type: "H", x: 2.72, y: 0.45, z: 0.00 }
-      ],
-      bonds: [
-        { from: 0, to: 1, order: 1 },
-        { from: 0, to: 2, order: 1 },
-        { from: 1, to: 3, order: 2 },
-        { from: 1, to: 4, order: 1 },
-        { from: 0, to: 5, order: 1 }, { from: 0, to: 6, order: 1 },
-        { from: 2, to: 7, order: 1 }, { from: 2, to: 8, order: 1 },
-        { from: 4, to: 9, order: 1 }
-      ]
-    }
-  },
-  {
+   {
     id: "CH3NH2",
     formula: "CH5N",
     name: "メチルアミン (Methylamine)",
@@ -4002,6 +3972,477 @@ const MOLECULE_DB = [
       ]
     }
   },
+
+{
+    id: "C4H7NO4",
+    formula: "C4H7NO4",
+    name: "アスパラギン酸 (Aspartic Acid)",
+    geometry: "主鎖アミノ酸骨格 + カルボキシメチル側鎖",
+   signature: "C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,N-1)|C(C-1,O-1,O-2)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(O-1)|H(O-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-1,H-1)|O(C-2)|O(C-2)",
+    desc: "側鎖にカルボキシ基(-COOH)を持つ酸性アミノ酸だ。生体内の窒素代謝やクエン酸回路とも深く関わり、タンパク質中でも電荷や水素結合のネットワークを作る。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "C", x: -1.25, y: 0.85, z: 0.00 },
+        { type: "C", x: 1.25, y: 0.85, z: 0.00 },
+        { type: "N", x: 0.00, y: -1.40, z: 0.00 },
+        { type: "H", x: 0.00, y: 0.45, z: 1.00 },
+        { type: "C", x: -2.50, y: 0.00, z: 0.00 },
+        { type: "H", x: -1.25, y: 1.50, z: 0.88 },
+        { type: "H", x: -1.25, y: 1.50, z: -0.88 },
+        { type: "O", x: -3.60, y: 0.65, z: 0.00 },
+        { type: "O", x: -2.50, y: -1.30, z: 0.00 },
+        { type: "H", x: -4.35, y: 0.12, z: 0.00 },
+        { type: "O", x: 2.35, y: 0.25, z: 0.00 },
+        { type: "O", x: 1.25, y: 2.15, z: 0.00 },
+        { type: "H", x: 1.25, y: 2.65, z: 0.82 },
+        { type: "H", x: 0.85, y: -1.85, z: 0.40 },
+        { type: "H", x: -0.85, y: -1.85, z: -0.40 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 1 },
+        { from: 1, to: 6, order: 1 },
+        { from: 1, to: 7, order: 1 },
+        { from: 5, to: 8, order: 1 },
+        { from: 5, to: 9, order: 2 },
+        { from: 8, to: 10, order: 1 },
+        { from: 2, to: 11, order: 2 },
+        { from: 2, to: 12, order: 1 },
+        { from: 12, to: 13, order: 1 },
+        { from: 3, to: 14, order: 1 },
+        { from: 3, to: 15, order: 1 }
+      ]
+    }
+  },
+
+{
+    id: "C5H9NO4",
+    formula: "C5H9NO4",
+    name: "グルタミン酸 (Glutamic Acid)",
+    geometry: "主鎖アミノ酸骨格 + カルボキシエチル側鎖",
+    signature: "C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,N-1)|C(C-1,O-1,O-2)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(O-1)|H(O-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-1,H-1)|O(C-2)|O(C-2)",
+    desc: "側鎖にカルボキシ基(-COOH)を持つ酸性アミノ酸だ。うまみ成分として知られ、脳内の主要な興奮性神経伝達物質や代謝の要としても働く。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "C", x: 1.25, y: 0.85, z: 0.00 },
+        { type: "C", x: -1.25, y: 0.85, z: 0.00 },
+        { type: "N", x: 0.00, y: -1.40, z: 0.00 },
+        { type: "H", x: 0.00, y: 0.45, z: 1.00 },
+        { type: "O", x: 2.35, y: 0.25, z: 0.00 },
+        { type: "O", x: 1.25, y: 2.15, z: 0.00 },
+        { type: "C", x: -2.50, y: 0.00, z: 0.00 },
+        { type: "H", x: -1.25, y: 1.50, z: 0.88 },
+        { type: "H", x: -1.25, y: 1.50, z: -0.88 },
+        { type: "H", x: 0.85, y: -1.85, z: 0.40 },
+        { type: "H", x: -0.85, y: -1.85, z: -0.40 },
+        { type: "H", x: 1.25, y: 2.65, z: 0.82 },
+        { type: "C", x: -3.75, y: 0.85, z: 0.00 },
+        { type: "H", x: -2.50, y: -0.65, z: 0.88 },
+        { type: "H", x: -2.50, y: -0.65, z: -0.88 },
+        { type: "O", x: -4.85, y: 0.25, z: 0.00 },
+        { type: "O", x: -3.75, y: 2.15, z: 0.00 },
+        { type: "H", x: -3.75, y: 2.65, z: 0.82 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 2 },
+        { from: 1, to: 6, order: 1 },
+        { from: 2, to: 7, order: 1 },
+        { from: 2, to: 8, order: 1 },
+        { from: 2, to: 9, order: 1 },
+        { from: 3, to: 10, order: 1 },
+        { from: 3, to: 11, order: 1 },
+        { from: 6, to: 12, order: 1 },
+        { from: 7, to: 13, order: 1 },
+        { from: 7, to: 14, order: 1 },
+        { from: 7, to: 15, order: 1 },
+        { from: 13, to: 16, order: 2 },
+        { from: 13, to: 17, order: 1 },
+        { from: 17, to: 18, order: 1 }
+      ]
+    }
+  },
+
+{
+    id: "C6H14N2O2",
+    formula: "C6H14N2O2",
+    name: "リシン (Lysine)",
+    geometry: "主鎖アミノ酸骨格 + 4-アミノブチル側鎖",
+   signature: "C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,N-1)|C(C-1,H-1,H-1,N-1)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(N-1)|H(N-1)|H(O-1)|N(C-1,H-1,H-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-2)",
+    desc: "側鎖末端にアミノ基(-NH2)を持つ塩基性アミノ酸だ。正電荷を帯びやすく、タンパク質中で酸性残基やDNAなどとの相互作用にも関わる。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "C", x: 1.25, y: 0.85, z: 0.00 },
+        { type: "C", x: -1.25, y: 0.85, z: 0.00 },
+        { type: "N", x: 0.00, y: -1.40, z: 0.00 },
+        { type: "H", x: 0.00, y: 0.45, z: 1.00 },
+        { type: "O", x: 2.35, y: 0.25, z: 0.00 },
+        { type: "O", x: 1.25, y: 2.15, z: 0.00 },
+        { type: "C", x: -2.50, y: 0.00, z: 0.00 },
+        { type: "H", x: -1.25, y: 1.50, z: 0.88 },
+        { type: "H", x: -1.25, y: 1.50, z: -0.88 },
+        { type: "H", x: 0.85, y: -1.85, z: 0.40 },
+        { type: "H", x: -0.85, y: -1.85, z: -0.40 },
+        { type: "H", x: 1.25, y: 2.65, z: 0.82 },
+        { type: "C", x: -3.75, y: 0.85, z: 0.00 },
+        { type: "H", x: -2.50, y: -0.65, z: 0.88 },
+        { type: "H", x: -2.50, y: -0.65, z: -0.88 },
+        { type: "C", x: -5.00, y: 0.00, z: 0.00 },
+        { type: "H", x: -3.75, y: 1.50, z: 0.88 },
+        { type: "H", x: -3.75, y: 1.50, z: -0.88 },
+        { type: "N", x: -6.25, y: 0.85, z: 0.00 },
+        { type: "H", x: -5.00, y: -0.65, z: 0.88 },
+        { type: "H", x: -5.00, y: -0.65, z: -0.88 },
+        { type: "H", x: -7.05, y: 0.35, z: 0.40 },
+        { type: "H", x: -6.25, y: 1.75, z: -0.40 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 2 },
+        { from: 1, to: 6, order: 1 },
+        { from: 2, to: 7, order: 1 },
+        { from: 2, to: 8, order: 1 },
+        { from: 2, to: 9, order: 1 },
+        { from: 3, to: 10, order: 1 },
+        { from: 3, to: 11, order: 1 },
+        { from: 6, to: 12, order: 1 },
+        { from: 7, to: 13, order: 1 },
+        { from: 7, to: 14, order: 1 },
+        { from: 7, to: 15, order: 1 },
+        { from: 13, to: 16, order: 1 },
+        { from: 13, to: 17, order: 1 },
+        { from: 13, to: 18, order: 1 },
+        { from: 16, to: 19, order: 1 },
+        { from: 16, to: 20, order: 1 },
+        { from: 16, to: 21, order: 1 },
+        { from: 19, to: 22, order: 1 },
+        { from: 19, to: 23, order: 1 }
+      ]
+    }
+  },
+
+{
+    id: "C3H4O3",
+    formula: "C3H4O3",
+    name: "ピルビン酸 (Pyruvic Acid)",
+    geometry: "α-ケト酸骨格（メチル基 + カルボニル基 + カルボキシ基）",
+    signature: "C(C-1,C-1,O-2)|C(C-1,H-1,H-1,H-1)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(O-1)|O(C-1,H-1)|O(C-2)|O(C-2)",
+    desc: "解糖系とクエン酸回路をつなぐ代謝の要となるα-ケト酸だ。エネルギー代謝の中継点として働き、アミノ酸や乳酸などの生合成にも関わる。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "C", x: -1.30, y: 0.70, z: 0.00 },
+        { type: "C", x: 1.30, y: 0.70, z: 0.00 },
+        { type: "O", x: 0.00, y: -1.30, z: 0.00 },
+        { type: "O", x: 2.38, y: 0.10, z: 0.00 },
+        { type: "O", x: 1.30, y: 2.02, z: 0.00 },
+        { type: "H", x: -1.30, y: 1.78, z: 0.00 },
+        { type: "H", x: -1.85, y: 0.35, z: 0.88 },
+        { type: "H", x: -1.85, y: 0.35, z: -0.88 },
+        { type: "H", x: 2.18, y: 2.42, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 2 },
+        { from: 1, to: 6, order: 1 },
+        { from: 1, to: 7, order: 1 },
+        { from: 1, to: 8, order: 1 },
+        { from: 2, to: 4, order: 2 },
+        { from: 2, to: 5, order: 1 },
+        { from: 5, to: 9, order: 1 }
+      ]
+    }
+  },
+
+{
+    id: "C3H7NO2",
+    formula: "C3H7NO2",
+    name: "アラニン (Alanine)",
+    geometry: "主鎖アミノ酸骨格 + メチル側鎖",
+    signature: "C(C-1,C-1,H-1,N-1)|C(C-1,H-1,H-1,H-1)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(O-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-2)",
+    desc: "メチル基(-CH3)を側鎖に持つシンプルな中性アミノ酸だ。タンパク質合成だけでなく、ピルビン酸と行き来しながら糖や窒素の代謝にも関わる。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "C", x: 1.25, y: 0.85, z: 0.00 },
+        { type: "C", x: -1.25, y: 0.85, z: 0.00 },
+        { type: "N", x: 0.00, y: -1.40, z: 0.00 },
+        { type: "H", x: 0.00, y: 0.45, z: 1.00 },
+        { type: "O", x: 2.35, y: 0.25, z: 0.00 },
+        { type: "O", x: 1.25, y: 2.15, z: 0.00 },
+        { type: "H", x: -2.15, y: 0.25, z: 0.00 },
+        { type: "H", x: -1.25, y: 1.50, z: 0.88 },
+        { type: "H", x: -1.25, y: 1.50, z: -0.88 },
+        { type: "H", x: 0.85, y: -1.85, z: 0.40 },
+        { type: "H", x: -0.85, y: -1.85, z: -0.40 },
+        { type: "H", x: 1.25, y: 2.65, z: 0.82 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 2 },
+        { from: 1, to: 6, order: 1 },
+        { from: 2, to: 7, order: 1 },
+        { from: 2, to: 8, order: 1 },
+        { from: 2, to: 9, order: 1 },
+        { from: 3, to: 10, order: 1 },
+        { from: 3, to: 11, order: 1 },
+        { from: 6, to: 12, order: 1 }
+      ]
+    }
+  },
+
+{
+    id: "C3H6O3",
+    formula: "C3H6O3",
+    name: "乳酸 (Lactic Acid)",
+    geometry: "α-ヒドロキシ酸骨格（メチル基 + ヒドロキシ基 + カルボキシ基）",
+    signature: "C(C-1,C-1,H-1,O-1)|C(C-1,H-1,H-1,H-1)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(O-1)|H(O-1)|O(C-1,H-1)|O(C-1,H-1)|O(C-2)",
+    desc: "ピルビン酸とも関わるα-ヒドロキシ酸だ。嫌気的代謝や発酵などの文脈で知られ、生体内でのエネルギー代謝や酸塩基バランスにも関わる。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -1.30, y: 0.70, z: 0.00 },
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "C", x: 1.30, y: 0.70, z: 0.00 },
+        { type: "O", x: 0.00, y: -1.30, z: 0.00 },
+        { type: "O", x: 2.38, y: 0.10, z: 0.00 },
+        { type: "O", x: 1.30, y: 2.02, z: 0.00 },
+        { type: "H", x: -1.30, y: 1.78, z: 0.00 },
+        { type: "H", x: -1.85, y: 0.35, z: 0.88 },
+        { type: "H", x: -1.85, y: 0.35, z: -0.88 },
+        { type: "H", x: 0.00, y: 0.45, z: 1.00 },
+        { type: "H", x: -0.85, y: -1.75, z: 0.00 },
+        { type: "H", x: 2.18, y: 2.42, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 1, to: 2, order: 1 },
+        { from: 1, to: 3, order: 1 },
+        { from: 2, to: 4, order: 2 },
+        { from: 2, to: 5, order: 1 },
+        { from: 0, to: 6, order: 1 },
+        { from: 0, to: 7, order: 1 },
+        { from: 0, to: 8, order: 1 },
+        { from: 1, to: 9, order: 1 },
+        { from: 3, to: 10, order: 1 },
+        { from: 5, to: 11, order: 1 }
+      ]
+    }
+  },
+
+{
+    id: "C5H10N2O3",
+    formula: "C5H10N2O3",
+    name: "グルタミン (Glutamine)",
+    geometry: "主鎖アミノ酸骨格 + カルバモイルエチル側鎖",
+    signature: "C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,N-1)|C(C-1,N-1,O-2)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(N-1)|H(N-1)|H(O-1)|N(C-1,H-1,H-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-2)|O(C-2)",
+    desc: "側鎖にアミド基(-CONH2)を持つ中性アミノ酸だ。グルタミン酸と深く結びつき、生体内の窒素輸送や代謝ネットワークで重要な役割を担う。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "C", x: 1.25, y: 0.85, z: 0.00 },
+        { type: "C", x: -1.25, y: 0.85, z: 0.00 },
+        { type: "N", x: 0.00, y: -1.40, z: 0.00 },
+        { type: "H", x: 0.00, y: 0.45, z: 1.00 },
+        { type: "O", x: 2.35, y: 0.25, z: 0.00 },
+        { type: "O", x: 1.25, y: 2.15, z: 0.00 },
+        { type: "C", x: -2.50, y: 0.00, z: 0.00 },
+        { type: "H", x: -1.25, y: 1.50, z: 0.88 },
+        { type: "H", x: -1.25, y: 1.50, z: -0.88 },
+        { type: "H", x: 0.85, y: -1.85, z: 0.40 },
+        { type: "H", x: -0.85, y: -1.85, z: -0.40 },
+        { type: "H", x: 1.25, y: 2.65, z: 0.82 },
+        { type: "C", x: -3.75, y: 0.85, z: 0.00 },
+        { type: "H", x: -2.50, y: -0.65, z: 0.88 },
+        { type: "H", x: -2.50, y: -0.65, z: -0.88 },
+        { type: "O", x: -4.85, y: 0.25, z: 0.00 },
+        { type: "N", x: -3.75, y: 2.15, z: 0.00 },
+        { type: "H", x: -4.60, y: 2.60, z: 0.40 },
+        { type: "H", x: -2.90, y: 2.60, z: -0.40 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 2 },
+        { from: 1, to: 6, order: 1 },
+        { from: 2, to: 7, order: 1 },
+        { from: 2, to: 8, order: 1 },
+        { from: 2, to: 9, order: 1 },
+        { from: 3, to: 10, order: 1 },
+        { from: 3, to: 11, order: 1 },
+        { from: 6, to: 12, order: 1 },
+        { from: 7, to: 13, order: 1 },
+        { from: 7, to: 14, order: 1 },
+        { from: 7, to: 15, order: 1 },
+        { from: 13, to: 16, order: 2 },
+        { from: 13, to: 17, order: 1 },
+        { from: 17, to: 18, order: 1 },
+        { from: 17, to: 19, order: 1 }
+      ]
+    }
+  },
+
+{
+    id: "C3H7NO2S",
+    formula: "C3H7NO2S",
+    name: "システイン (Cysteine)",
+    geometry: "主鎖アミノ酸骨格 + メルカプトメチル側鎖",
+    signature: "C(C-1,C-1,H-1,N-1)|C(C-1,H-1,H-1,S-1)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(O-1)|H(S-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-2)|S(C-1,H-1)",
+    desc: "側鎖にチオール基(-SH)を持つ含硫アミノ酸だ。酸化還元や金属配位に関わり、タンパク質中でジスルフィド結合(-S-S-)を作る要にもなる。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "C", x: 1.25, y: 0.85, z: 0.00 },
+        { type: "C", x: -1.25, y: 0.85, z: 0.00 },
+        { type: "N", x: 0.00, y: -1.40, z: 0.00 },
+        { type: "H", x: 0.00, y: 0.45, z: 1.00 },
+        { type: "O", x: 2.35, y: 0.25, z: 0.00 },
+        { type: "O", x: 1.25, y: 2.15, z: 0.00 },
+        { type: "S", x: -2.65, y: 0.00, z: 0.00 },
+        { type: "H", x: -1.25, y: 1.50, z: 0.88 },
+        { type: "H", x: -1.25, y: 1.50, z: -0.88 },
+        { type: "H", x: 0.85, y: -1.85, z: 0.40 },
+        { type: "H", x: -0.85, y: -1.85, z: -0.40 },
+        { type: "H", x: 1.25, y: 2.65, z: 0.82 },
+        { type: "H", x: -3.55, y: 0.85, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 2 },
+        { from: 1, to: 6, order: 1 },
+        { from: 2, to: 7, order: 1 },
+        { from: 2, to: 8, order: 1 },
+        { from: 2, to: 9, order: 1 },
+        { from: 3, to: 10, order: 1 },
+        { from: 3, to: 11, order: 1 },
+        { from: 6, to: 12, order: 1 },
+        { from: 7, to: 13, order: 1 }
+      ]
+    }
+  },
+
+{
+    id: "C4H8N2O3",
+    formula: "C4H8N2O3",
+    name: "アスパラギン (Asparagine)",
+    geometry: "主鎖アミノ酸骨格 + カルバモイルメチル側鎖",
+   signature: "C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,N-1)|C(C-1,N-1,O-2)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(N-1)|H(N-1)|H(O-1)|N(C-1,H-1,H-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-2)|O(C-2)",
+    desc: "側鎖にアミド基(-CONH2)を持つ中性アミノ酸だ。アスパラギン酸と深く関わり、タンパク質中の糖鎖結合サイトや窒素代謝にも顔を出す。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "C", x: 1.25, y: 0.85, z: 0.00 },
+        { type: "C", x: -1.25, y: 0.85, z: 0.00 },
+        { type: "N", x: 0.00, y: -1.40, z: 0.00 },
+        { type: "H", x: 0.00, y: 0.45, z: 1.00 },
+        { type: "O", x: 2.35, y: 0.25, z: 0.00 },
+        { type: "O", x: 1.25, y: 2.15, z: 0.00 },
+        { type: "C", x: -2.50, y: 0.00, z: 0.00 },
+        { type: "H", x: -1.25, y: 1.50, z: 0.88 },
+        { type: "H", x: -1.25, y: 1.50, z: -0.88 },
+        { type: "H", x: 0.85, y: -1.85, z: 0.40 },
+        { type: "H", x: -0.85, y: -1.85, z: -0.40 },
+        { type: "H", x: 1.25, y: 2.65, z: 0.82 },
+        { type: "O", x: -3.60, y: -0.60, z: 0.00 },
+        { type: "N", x: -2.50, y: 1.30, z: 0.00 },
+        { type: "H", x: -3.35, y: 1.75, z: 0.40 },
+        { type: "H", x: -1.65, y: 1.75, z: -0.40 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 2 },
+        { from: 1, to: 6, order: 1 },
+        { from: 2, to: 7, order: 1 },
+        { from: 2, to: 8, order: 1 },
+        { from: 2, to: 9, order: 1 },
+        { from: 3, to: 10, order: 1 },
+        { from: 3, to: 11, order: 1 },
+        { from: 6, to: 12, order: 1 },
+        { from: 7, to: 13, order: 2 },
+        { from: 7, to: 14, order: 1 },
+        { from: 14, to: 15, order: 1 },
+        { from: 14, to: 16, order: 1 }
+      ]
+    }
+  },
+
+{
+    id: "C3H7NO3",
+    formula: "C3H7NO3",
+    name: "セリン (Serine)",
+    geometry: "主鎖アミノ酸骨格 + ヒドロキシメチル側鎖",
+    signature: "C(C-1,C-1,H-1,N-1)|C(C-1,H-1,H-1,O-1)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(O-1)|H(O-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-1,H-1)|O(C-2)",
+    desc: "側鎖にヒドロキシ基(-OH)を持つ中性アミノ酸だ。タンパク質中のリン酸化サイトや一炭素代謝、生体膜成分の合成など幅広い役割を担う。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "C", x: 1.25, y: 0.85, z: 0.00 },
+        { type: "C", x: -1.25, y: 0.85, z: 0.00 },
+        { type: "N", x: 0.00, y: -1.40, z: 0.00 },
+        { type: "H", x: 0.00, y: 0.45, z: 1.00 },
+        { type: "O", x: 2.35, y: 0.25, z: 0.00 },
+        { type: "O", x: 1.25, y: 2.15, z: 0.00 },
+        { type: "O", x: -2.40, y: 0.15, z: 0.00 },
+        { type: "H", x: -1.25, y: 1.50, z: 0.88 },
+        { type: "H", x: -1.25, y: 1.50, z: -0.88 },
+        { type: "H", x: 0.85, y: -1.85, z: 0.40 },
+        { type: "H", x: -0.85, y: -1.85, z: -0.40 },
+        { type: "H", x: 1.25, y: 2.65, z: 0.82 },
+        { type: "H", x: -3.15, y: 0.72, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 2 },
+        { from: 1, to: 6, order: 1 },
+        { from: 2, to: 7, order: 1 },
+        { from: 2, to: 8, order: 1 },
+        { from: 2, to: 9, order: 1 },
+        { from: 3, to: 10, order: 1 },
+        { from: 3, to: 11, order: 1 },
+        { from: 6, to: 12, order: 1 },
+        { from: 7, to: 13, order: 1 }
+      ]
+    }
+  },
+
+
+
+
+
+
+
+
+
+
+
+
+
  ];
 
 // 重複分子の自動クリーンアップ（検証済みの新規データを優先して保持）
@@ -4900,7 +5341,7 @@ if (course === "FAMILY") {
       .filter(group => group.length > 1)
       .sort((a, b) => a[0].feat.totalAtoms - b[0].feat.totalAtoms);
 
-    if (isomerGroups.length === 0) {
+  if (isomerGroups.length === 0) {
       return [...items]
         .sort((a, b) => a.feat.totalAtoms - b.feat.totalAtoms)
         .map(x => x.mol);
@@ -4908,7 +5349,36 @@ if (course === "FAMILY") {
     return isomerGroups.flat().map(x => x.mol);
   }
 
+  if (course === "BIO") {
+    const getBioScore = (mol, feat) => {
+      const c = feat.counts || {};
+      const hasN = (c.N || 0) > 0 ? 1 : 0;
+      const hasO = (c.O || 0) > 0 ? 1 : 0;
+      const hasSOrP = ((c.S || 0) + (c.P || 0)) > 0 ? 1 : 0;
+      return (hasN * 4) + (hasO * 2) + (hasSOrP * 3) + (feat.totalAtoms * 0.1);
+    };
+    return [...items]
+      .sort((a, b) => (getBioScore(b.mol, b.feat) - getBioScore(a.mol, a.feat)) || (a.feat.totalAtoms - b.feat.totalAtoms))
+      .map(x => x.mol);
+  }
 
+  if (course === "HETERO") {
+    const getHeteroScore = (feat) => {
+      const c = feat.counts || {};
+      const heteroTypes = Object.keys(c).filter(el => el !== "C" && el !== "H");
+      const heteroCount = heteroTypes.reduce((sum, el) => sum + (c[el] || 0), 0);
+      return (heteroTypes.length * 10) + heteroCount;
+    };
+    return [...items]
+      .sort((a, b) => (getHeteroScore(b.feat) - getHeteroScore(a.feat)) || (a.feat.totalAtoms - b.feat.totalAtoms))
+      .map(x => x.mol);
+  }
+
+  if (course === "SCALE") {
+    return [...items]
+      .sort((a, b) => (a.feat.totalAtoms - b.feat.totalAtoms) || ((b.feat.hasRing ? 1 : 0) - (a.feat.hasRing ? 1 : 0)))
+      .map(x => x.mol);
+  }
 
   const remaining = [...items].sort((a, b) => a.feat.totalAtoms - b.feat.totalAtoms);
   const chain = [remaining.shift()];
@@ -4938,10 +5408,14 @@ if (course === "FAMILY") {
 }
 
 const DRILL_COURSE_LABELS = {
-  EVOLUTION: "1:誘導体",
-  FAMILY: "2:官能基",
-  ISOMER: "3:異性体"
+  EVOLUTION: "1:DERIV",
+  FAMILY: "2:FUNC",
+  ISOMER: "3:ISOMER",
+  BIO: "4:BIO",
+  HETERO: "5:HETERO",
+  SCALE: "6:SCALE"
 };
+
 
 // ハイブリッド・プログレッシブ分子ドリル動的生成エンジン (Lv.1 - Lv.5 / 応用コース)
 function generateChemDrill(lv, viewW, viewH) {
@@ -6231,15 +6705,15 @@ for (let y = 0; y <= logicalH; y += pitch) {
       const viewCenterY = (vp && vp.clientHeight > 0) ? (vp.scrollTop + vp.clientHeight * 0.5) / z : logicalH * 0.5;
       const viewVisibleW = (vp && vp.clientWidth > 0) ? (vp.clientWidth / z) : logicalW;
 
-      let headerLabel = "HOW TO PLAY : まずは水の分子を作ろう";
-      let stepText = "左側の元素ボタンHをクリックしてからこの画面に水素原子を二つ配置しましょう。";
+ let headerLabel = "HOW TO PLAY : 水の分子を作ろう / Build H2O";
+      let stepText = "左側の [H] をクリックし、画面に水素を2つ配置しましょう。 / Select [H] and place 2 Hydrogen atoms on the canvas.";
 
       if (isH2OComplete) {
-        headerLabel = "COMPLETE : 水の分子 (H2O) 完成！";
-        stepText = "画面下側のドリルボタンをオンにすれば出題されます。";
+        headerLabel = "COMPLETE : 水の分子 (H2O) 完成 / H2O Stabilized";
+        stepText = "画面下側のドリルボタンをオンにすると出題されます。 / Turn on the [DRILL] button at the bottom to start missions.";
       } else if (hCount >= 2) {
-        headerLabel = "STEP 2 / 3 : 酸素を配置してつなごう";
-        stepText = "HボタンをオフにしてOボタンをクリックし、O(単原子)を選んでこの画面に一つ配置しましょう。元素をタップしそのまま他の元素に接続線が引けます。3つの元素をつないで水の分子を完成させましょう。";
+        headerLabel = "STEP 2 / 3 : 酸素をつなごう / Bond Oxygen";
+        stepText = "[H] をオフにし、[O] (単原子) を1つ配置してドラッグで3つの原子をつなぎましょう。 / Turn off [H], place 1 [O] atom, and drag to bond all 3 atoms into H2O.";
       }
 
       const isCompact = viewVisibleW < 420;
@@ -6488,50 +6962,117 @@ function render3DViewer() {
     styleBtn = document.createElement("button");
     styleBtn.id = "btn-3d-style-toggle";
     styleBtn.type = "button";
+    styleBtn.style.cssText = "padding: 3px 6px; display: inline-flex; align-items: center; justify-content: center;";
     styleBtn.addEventListener("click", () => {
       chemState.classic3DMode = !chemState.classic3DMode;
       render3DViewer();
     });
     teleBtn.parentElement.insertBefore(styleBtn, teleBtn.nextSibling);
   }
-let bulkBtn = document.getElementById("btn-3d-bulk-toggle");
+  let bulkBtn = document.getElementById("btn-3d-bulk-toggle");
   if (!bulkBtn && teleBtn && teleBtn.parentElement) {
     bulkBtn = document.createElement("button");
     bulkBtn.id = "btn-3d-bulk-toggle";
     bulkBtn.type = "button";
+    bulkBtn.style.cssText = "padding: 3px 6px; display: inline-flex; align-items: center; justify-content: center;";
     bulkBtn.addEventListener("click", () => {
       chemState.bulk3DMode = !chemState.bulk3DMode;
       render3DViewer();
     });
     teleBtn.parentElement.insertBefore(bulkBtn, styleBtn ? styleBtn.nextSibling : teleBtn.nextSibling);
   }
+
   const isBulk3D = Boolean(chemState.bulk3DMode);
   if (bulkBtn) {
-    bulkBtn.textContent = isBulk3D ? "構成: 3x3x3" : "構成: 単体";
+    const bulkModeKey = isBulk3D ? "3x3x3" : "single";
+    if (bulkBtn.dataset.mode !== bulkModeKey) {
+      bulkBtn.dataset.mode = bulkModeKey;
+      bulkBtn.title = isBulk3D ? "構成: 3x3x3" : "構成: 単体";
+      bulkBtn.setAttribute("aria-label", bulkBtn.title);
+      bulkBtn.innerHTML = isBulk3D
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>'
+        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>';
+    }
     bulkBtn.classList.toggle("active", isBulk3D);
   }
 
-const isClassic3D = Boolean(chemState.classic3DMode);
+  const isClassic3D = Boolean(chemState.classic3DMode);
   if (styleBtn) {
-    styleBtn.textContent = isClassic3D ? "表示: 立体構造式" : "表示: 量子クラウド";
+    const styleModeKey = isClassic3D ? "classic" : "quantum";
+    if (styleBtn.dataset.mode !== styleModeKey) {
+      styleBtn.dataset.mode = styleModeKey;
+      styleBtn.title = isClassic3D ? "表示: 立体構造式" : "表示: 量子クラウド";
+      styleBtn.setAttribute("aria-label", styleBtn.title);
+      styleBtn.innerHTML = isClassic3D
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>'
+        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>';
+    }
     styleBtn.classList.toggle("active", isClassic3D);
   }
 
-  const evalRes = chemState.lastEvaluation;  if (!evalRes || evalRes.status !== "STABLE_MATCH" || !evalRes.molecule || !evalRes.molecule.model3D) {
+
+ const evalRes = chemState.lastEvaluation;
+  if (!evalRes || evalRes.status !== "STABLE_MATCH" || !evalRes.molecule || !evalRes.molecule.model3D) {
     render3DViewer.wasActive = false;
     ctx.clearRect(0, 0, w, h);
-    ctx.strokeStyle = "rgba(51, 65, 85, 0.25)";
+
+    // 背景グリッド十字軸
+    ctx.strokeStyle = "rgba(51, 65, 85, 0.2)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(w / 2, 16); ctx.lineTo(w / 2, h - 16);
-    ctx.moveTo(16, h / 2); ctx.lineTo(w - 16, h / 2);
+    ctx.moveTo(w / 2, 12); ctx.lineTo(w / 2, h - 12);
+    ctx.moveTo(12, h / 2); ctx.lineTo(w - 12, h / 2);
     ctx.stroke();
 
-    ctx.fillStyle = "#64748b";
-    ctx.font = "13px monospace";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("実在分子が完成すると、ここに3D量子電子雲モデルが実体化します", w / 2, h / 2);
+ const isDrill = Boolean(chemState.drill && chemState.drill.active);
+    const panelW = Math.min(w - 20, 540);
+
+    const lines = isDrill ? [
+      { text: "[ DRILL MODE ] 分子構築演習モード — 遊び方ガイド", color: "#38bdf8", bold: true },
+      { text: "------------------------------------------------------------", color: "rgba(56, 189, 248, 0.25)", bold: false },
+      { text: "[ 進行 ] 上部お題の分子を2D構築 -> 正解で自動判定＆3D実体化", color: "#e2e8f0", bold: true },
+      { text: "[ 操作 ] DRILL:演習終了(自由設計へ) / BASIC・ADV:基礎・応用切替", color: "#94a3b8", bold: false },
+      { text: "         LV.1〜5:難易度 / NEXT:次の問題 / ANS:解答表示", color: "#94a3b8", bold: false },
+      { text: "[ 応用コース (ADV COURSES) ]", color: "#e2e8f0", bold: true },
+      { text: "・1:DERIV (誘導体) : 基本骨格の置換基を段階変化させる演習", color: "#94a3b8", bold: false },
+      { text: "・2:FUNC  (官能基) : アルコール・カルボン酸など官能基別演習", color: "#94a3b8", bold: false },
+      { text: "・3:ISOMER(異性体) : 同一分子式から異なる構造異性体を作る演習", color: "#94a3b8", bold: false },
+      { text: "[ 下部ツール ] 戻す(1手戻す) / 消ゴム(削除) / ゴミ箱(全消去)", color: "#94a3b8", bold: false }
+    ] : [
+      { text: "[ MOLECULAR SIMULATOR ] 自由設計モード (完成で3D実体化)", color: "#38bdf8", bold: true },
+      { text: "------------------------------------------------------------", color: "rgba(56, 189, 248, 0.25)", bold: false },
+      { text: "[ 案内 ] 左パレットから原子配置 / 下部 [DRILL] で演習へ切替", color: "#e2e8f0", bold: true },
+      { text: "[ 操作 ] 2D:タップ配置・ドラッグ結合・ホイール拡大 / 3D:回転・拡大", color: "#94a3b8", bold: false },
+      { text: "[ アイコン・ボタン解説 (ENGLISH / 日本語) ]", color: "#e2e8f0", bold: true },
+      { text: "・構造設計: 軌道(電子観察) / 磁石(自動スナップ)", color: "#94a3b8", bold: false },
+      { text: "・立体構造: 立方体(3D計測) / 雲・構造(表示) / 四角(単体・3x3x3)", color: "#94a3b8", bold: false },
+      { text: "            循環矢印(自動回転) / 照準(正面リセット)", color: "#94a3b8", bold: false },
+      { text: "[ 下部ツールバー ]", color: "#e2e8f0", bold: true },
+      { text: "・戻す(1手戻す) / 消ゴム(個別削除) / ゴミ箱(全消去) / 本(図鑑)", color: "#94a3b8", bold: false }
+    ];
+
+    const maxLineH = (w < 440 || h < 340) ? 15 : 18;
+    const lineH = Math.max(11, Math.min(maxLineH, Math.floor((h - 22) / lines.length)));
+    const baseSize = Math.max(8.5, Math.min((w < 440 || h < 340) ? 10 : 11, lineH - 4));
+    const totalH = lines.length * lineH + 12;
+    const startX = Math.max(12, (w - panelW) / 2);
+    const startY = Math.max(8, Math.floor((h - totalH) / 2));
+
+    ctx.fillStyle = "rgba(15, 23, 42, 0.76)";
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.25)";
+    ctx.lineWidth = 1;
+    ctx.fillRect(startX - 6, startY - 6, panelW + 12, Math.min(h - startY - 2, totalH));
+    ctx.strokeRect(startX - 6, startY - 6, panelW + 12, Math.min(h - startY - 2, totalH));
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    lines.forEach((item, idx) => {
+      const y = startY + idx * lineH;
+      if (y + lineH > h - 4) return;
+      ctx.fillStyle = item.color;
+      ctx.font = `${item.bold ? "bold " : ""}${baseSize}px monospace`;
+      ctx.fillText(item.text, startX + 2, y, panelW - 8);
+    });
     return;
   }
 
@@ -7323,6 +7864,8 @@ function refreshSimulation() {
   render2DCanvas();
   render3DViewer();
 }
+
+
 // ======================================================================
 // 【第7章：ユーザー操作イベント ＆ アプリケーション制御 (Interaction & Loop)】
 // タッチ＆マウス統合(Pointer Events)、2D配置/結線/移動/切替、3D回転/ピンチズーム
@@ -7700,25 +8243,35 @@ function ensureInspectorButtons() {
   const rightGroup = undoBtn ? undoBtn.parentElement : null;
   if (!rightGroup) return;
 
-  const createBtn = (id, text) => {
+const createBtn = (id, label, html = label) => {
     let btn = document.getElementById(id);
     if (!btn) {
       btn = document.createElement("button");
       btn.id = id;
-      btn.textContent = text;
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+      btn.innerHTML = html;
       rightGroup.insertBefore(btn, undoBtn);
     }
     return btn;
   };
 
-createBtn("btn-inspector-toggle", "電子観察: ON");
-  createBtn("btn-tele3d-toggle", "3Dテレメトリ: ON");
+ createBtn("btn-inspector-toggle", "電子観察", '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"></circle><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(30 12 12)"></ellipse><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-30 12 12)"></ellipse></svg>');
+  createBtn("btn-tele3d-toggle", "3Dテレメトリ", '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>');
 }
+
 
 let hintFilterMode = "all";
 
 function setHintFilterMode(mode) {
   hintFilterMode = mode === "undiscovered" ? "undiscovered" : "all";
+  renderDynamicHintGuide();
+}
+
+let hintSortMode = "order";
+
+function setHintSortMode(mode) {
+  hintSortMode = mode;
   renderDynamicHintGuide();
 }
 
@@ -7752,14 +8305,36 @@ function renderDynamicHintGuide() {
     btnUndisc.style.color = !isAll ? "#f8fafc" : "#cbd5e1";
   }
 
+const currentSortMode = (typeof hintSortMode !== "undefined") ? hintSortMode : "order";
+  const getAlphaName = (mol) => {
+    const raw = String(mol.name || "");
+    const match = raw.match(/\(([^()]+)\)\s*$/);
+    return (match ? match[1] : raw).trim();
+  };
+
   const grid = document.getElementById("hint-grid-container");
   if (grid) {
-    const items = MOLECULE_DB.map((mol, idx) => ({ mol, idx })).filter(({ mol }) => {
-      if (hintFilterMode === "undiscovered") {
-        return !discoveredSet.has(mol.id);
-      }
-      return true;
-    });
+    const items = MOLECULE_DB.map((mol, idx) => ({ mol, idx }))
+      .filter(({ mol }) => {
+        if (hintFilterMode === "undiscovered") {
+          return !discoveredSet.has(mol.id);
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (currentSortMode === "undiscovered") {
+          const aFound = discoveredSet.has(a.mol.id) ? 1 : 0;
+          const bFound = discoveredSet.has(b.mol.id) ? 1 : 0;
+          return (aFound - bFound) || (a.idx - b.idx);
+        }
+        if (currentSortMode === "formula") {
+          return String(a.mol.formula || "").localeCompare(String(b.mol.formula || ""), "en", { numeric: true }) || (a.idx - b.idx);
+        }
+        if (currentSortMode === "nameAlpha") {
+          return getAlphaName(a.mol).localeCompare(getAlphaName(b.mol), "en", { sensitivity: "base" }) || (a.idx - b.idx);
+        }
+        return a.idx - b.idx;
+      });
 
     if (items.length === 0) {
       grid.innerHTML = `<div style="grid-column: 1 / -1; color: #10b981; font-weight: bold;">全${total}分子をすべて発見しました。コンプリート達成です。</div>`;
@@ -7791,51 +8366,49 @@ const drillModeBtn = document.getElementById("btn-drill-mode");
   const elButtons = document.querySelectorAll(".el-btn");
   const isMarathon = chemState.drill.type === "MARATHON";
 
-  if (inspBtn) {
-    inspBtn.textContent = chemState.inspector.visible ? "電子観察: ON" : "電子観察: OFF";
+if (inspBtn) {
     inspBtn.classList.toggle("active", chemState.inspector.visible);
   }
 
-  if (tele3dBtn) {
+ if (tele3dBtn) {
     tele3dBtn.style.display = "inline-block";
-    tele3dBtn.textContent = chemState.inspector.telemetry3D ? "3Dテレメトリ: ON" : "3Dテレメトリ: OFF";
     tele3dBtn.classList.toggle("active", chemState.inspector.telemetry3D);
   }
 
 if (drillModeBtn) {
     drillModeBtn.style.display = "inline-flex";
-    drillModeBtn.textContent = "ドリル";
+    drillModeBtn.textContent = "DRILL";
     drillModeBtn.classList.toggle("active", isDrill);
   }
-if (typeBtn) {
+  if (typeBtn) {
     typeBtn.style.display = isDrill ? "inline-flex" : "none";
     typeBtn.disabled = !isDrill;
     typeBtn.style.opacity = "1.0";
-    typeBtn.textContent = isMarathon ? "応用" : "基礎";
+    typeBtn.textContent = isMarathon ? "ADV" : "BASIC";
     typeBtn.classList.toggle("active", isDrill);
   }
-if (levelBtn) {
+  if (levelBtn) {
     levelBtn.style.display = isDrill ? "inline-flex" : "none";
     levelBtn.disabled = !isDrill;
     levelBtn.style.opacity = "1.0";
     levelBtn.textContent = isMarathon
       ? (DRILL_COURSE_LABELS[chemState.drill.marathonCourse] || DRILL_COURSE_LABELS.EVOLUTION)
-      : `Lv.${chemState.drill.level}`;
+      : `LV.${chemState.drill.level}`;
   }
 
   if (nextBtn) {
     nextBtn.style.display = isDrill ? "inline-flex" : "none";
     nextBtn.disabled = !isDrill;
     nextBtn.style.opacity = "1.0";
+    nextBtn.textContent = "NEXT";
   }
   if (ansBtn) {
     ansBtn.style.display = isDrill ? "inline-flex" : "none";
     ansBtn.disabled = !isDrill;
     ansBtn.style.opacity = "1.0";
-    ansBtn.textContent = "答え";
+    ansBtn.textContent = "ANS";
     ansBtn.classList.toggle("active", chemState.drill.showingAnswer && isDrill);
   }
-
   elButtons.forEach(btn => {
     btn.style.opacity = isDrill ? "0.45" : "1.0";
   });
@@ -7923,6 +8496,8 @@ function ensureElementButtons() {
   });
   renderFunctionalBlockDock();
 }
+
+
 function applyFixedToolbarLayout() {
   // 左右ペインの上部ヘッダーバーを検出し高さを完全統一
   const puzzleStage = document.getElementById("puzzle-stage");
@@ -7978,6 +8553,7 @@ function applyFixedToolbarLayout() {
     }
   `;
 }
+
 function setupToolbarUI() {
   ensureElementButtons();
   ensureInspectorButtons();
@@ -8059,19 +8635,23 @@ const subMenu = document.getElementById("carbon-mode-menu");
   });
 
 const canvas2dEl = document.getElementById("canvas-2d");
-  const zoomSlider2dEl = document.getElementById("zoom-slider-2d");
   if (canvas2dEl) {
     canvas2dEl.addEventListener("pointerdown", closeElementSubMenu);
     canvas2dEl.addEventListener("wheel", (e) => {
       e.preventDefault();
-      if (!zoomSlider2dEl) return;
       const step = 0.1;
-      const current = parseFloat(zoomSlider2dEl.value) || chemState.zoom2D || 1.0;
+      const current = chemState.zoom2D || 1.0;
       const delta = e.deltaY < 0 ? step : -step;
       const next = Math.min(2.0, Math.max(0.4, Math.round((current + delta) * 10) / 10));
-      if (next !== current) {
-        zoomSlider2dEl.value = String(next);
-        zoomSlider2dEl.dispatchEvent(new Event("input"));
+    if (next !== current) {
+        chemState.zoom2D = next;
+        const vp = document.getElementById("canvas-2d-viewport");
+        if (vp) {
+          const rect = vp.getBoundingClientRect();
+          canvas2dEl.dataset.anchorOffsetX = String(Math.max(0, Math.min(vp.clientWidth, e.clientX - rect.left)));
+          canvas2dEl.dataset.anchorOffsetY = String(Math.max(0, Math.min(vp.clientHeight, e.clientY - rect.top)));
+        }
+        resizeAllCanvases();
       }
     }, { passive: false });
   }
@@ -8090,12 +8670,13 @@ const canvas2dEl = document.getElementById("canvas-2d");
     });
   }
 
-if (autoSnapBtn) {    autoSnapBtn.addEventListener("click", () => {
+if (autoSnapBtn) {
+    autoSnapBtn.addEventListener("click", () => {
       chemState.autoSnap = !chemState.autoSnap;
-      autoSnapBtn.textContent = chemState.autoSnap ? "自動スナップ: ON" : "自動スナップ: OFF";
       autoSnapBtn.classList.toggle("active", chemState.autoSnap);
     });
   }
+
 
   const inspBtn = document.getElementById("btn-inspector-toggle");
   if (inspBtn) {
@@ -8151,10 +8732,10 @@ const drillModeBtn = document.getElementById("btn-drill-mode");
   const levelBtn = document.getElementById("btn-drill-level");
   if (levelBtn) {
     levelBtn.addEventListener("click", () => {
-      if (chemState.drill.type === "BASIC") {
+    if (chemState.drill.type === "BASIC") {
         chemState.drill.level = (chemState.drill.level % 5) + 1;
       } else {
-        const courses = ["EVOLUTION", "FAMILY", "ISOMER"];
+        const courses = Object.keys(DRILL_COURSE_LABELS);
         const idx = courses.indexOf(chemState.drill.marathonCourse);
         chemState.drill.marathonCourse = courses[(idx + 1) % courses.length];
         chemState.drill.marathonIndex = 0;
@@ -8206,13 +8787,8 @@ const nextBtn = document.getElementById("btn-next-drill");
     });
   }
 
-const zoomSlider = document.getElementById("zoom-slider");
-  if (zoomSlider) {
-    zoomSlider.addEventListener("input", (e) => {
-      camera3D.zoom = parseFloat(e.target.value);
-      render3DViewer();
-    });
-  }
+// 3Dズームシークバー削除済み（ホイール・ピンチ操作のみ使用）
+
 
 // 分子全体の重心を50x50グリッドの中央(800,800)へ移動し、画面をスクロールする関数
   window.centerMoleculeInWorkspace = function() {
@@ -8233,24 +8809,13 @@ const zoomSlider = document.getElementById("zoom-slider");
       vp.scrollLeft = Math.max(0, 800 * z - vp.clientWidth / 2);
       vp.scrollTop = Math.max(0, 800 * z - vp.clientHeight / 2);
     }
-    if (typeof refreshSimulation === "function") refreshSimulation();
+
+
+ if (typeof refreshSimulation === "function") refreshSimulation();
   };
 
-  const zoomSlider2D = document.getElementById("zoom-slider-2d");
-  if (zoomSlider2D) {
-    zoomSlider2D.addEventListener("input", (e) => {
-      chemState.zoom2D = parseFloat(e.target.value);
-      resizeAllCanvases();
-      // ズーム時にも常にキャンバス中心が見えるようにスクロール補正
-      const vp = document.getElementById("canvas-2d-viewport");
-      if (vp) {
-        vp.scrollLeft = Math.max(0, 800 * chemState.zoom2D - vp.clientWidth / 2);
-        vp.scrollTop = Math.max(0, 800 * chemState.zoom2D - vp.clientHeight / 2);
-      }
-    });
-  }
-
 const autoRotBtn = document.getElementById("btn-auto-rotate");
+
   if (autoRotBtn) {
     autoRotBtn.addEventListener("click", () => {
       camera3D.autoRotate = !camera3D.autoRotate;
@@ -8258,13 +8823,12 @@ const autoRotBtn = document.getElementById("btn-auto-rotate");
     });
   }
 
-  const resetCamBtn = document.getElementById("btn-reset-cam");
+const resetCamBtn = document.getElementById("btn-reset-cam");
   if (resetCamBtn) {
     resetCamBtn.addEventListener("click", () => {
       camera3D.rotX = CHEM_ENV.DEFAULT_ROT_X;
       camera3D.rotY = CHEM_ENV.DEFAULT_ROT_Y;
       camera3D.zoom = 1.0;
-      if (zoomSlider) zoomSlider.value = "1.0";
       render3DViewer();
     });
   }
@@ -8406,7 +8970,7 @@ const syncGalleryToggleActive = (isOpen) => {
     closeBtn.type = "button";
     closeBtn.textContent = "閉じる";
     closeBtn.style.cssText = "background:#ef4444; border:none; color:#fff; padding:4px 12px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;";
-    closeBtn.addEventListener("click", () => {
+   closeBtn.addEventListener("click", () => {
       modal.classList.remove("open");
       syncGalleryToggleActive(false);
     });
@@ -8602,7 +9166,22 @@ function runDatabaseAudit() {
     }
     sigSet.add(mol.signature);
   });
-  console.log(`[CHEMSIM QA] 収録分子数: ${MOLECULE_DB.length}件 / 指紋一意性監査完了`);
+ console.log(`[CHEMSIM QA] 収録分子数: ${MOLECULE_DB.length}件 / 指紋一意性監査完了`);
+}
+
+function inspectSignatureMatch(targetId = null) {
+  if (typeof evaluateMoleculeState !== "function" || typeof MOLECULE_DB === "undefined") return null;
+  const evalRes = evaluateMoleculeState();
+  const boardSig = evalRes.signature || "";
+  const dbMol = targetId
+    ? MOLECULE_DB.find(m => m.id === targetId || m.formula === targetId)
+    : MOLECULE_DB.find(m => m.signature === boardSig);
+  const dbSig = dbMol ? dbMol.signature : "";
+  const isMatch = Boolean(boardSig && dbSig && boardSig === dbSig);
+  console.log("[SIG INSPECT] 一致:", isMatch, "| 対象:", dbMol ? `${dbMol.id} (${dbMol.name})` : "(未検出)");
+  console.log("[SIG INSPECT] 盤面:", boardSig);
+  console.log("[SIG INSPECT] DB  :", dbSig);
+  return { isMatch, boardSig, dbSig, matched: dbMol || null };
 }
 
 function loadStarterMethane() {
@@ -8661,6 +9240,8 @@ function initApp() {
 // 【開発・ビルド履歴ログデータ ＆ パネル生成】
 // ======================================================================
 const devLogs = [
+
+
   {
     tag: "",
     date: "",
@@ -8675,6 +9256,22 @@ const devLogs = [
       "【次回実装予定】"
     ]
   },
+
+{
+    tag: "UI/UX",
+    date: "2026-11-25",
+    title: "計器HUD風アイコン統一・3D待機動的ヘルプ・スマホ横画面2カラム最適化",
+    details: [
+      "左右ペインヘッダーおよび下部ツールバーの操作系ボタンを14px規格のインラインSVGアイコンへ統一",
+      "ドリル演習ボタン群（DRILL / BASIC / ADV / NEXT / ANS）とコース定数（1:DERIV / 2:FUNC / 3:ISOMER）を英語HUD表記へ統一",
+      "3Dビューア待機キャンバスに自由設計モードとDRILLモードで自動切替する日本語ヘルプガイドを実装（高さ自動フィット対応）",
+      "低ハイト横画面（orientation: landscape）専用の左右2カラム維持および上下バー・パレット圧縮CSSを追加",
+      "ResizeObserverとorientationchangeイベントにより画面回転時のキャンバス解像度・タッチ座標同期を補強",
+      "【次回実装予定】新規化合物・生体分子データの拡充および演習ドリル問題の追加（あわせてインラインCSSの共通クラス化）"
+    ]
+  },
+
+
 {
     "tag": "v1.1.0-pre-test",
     "date": "2026-11-24",
@@ -8744,4 +9341,13 @@ window.addEventListener("DOMContentLoaded", () => {
   if (typeof initMoleculeGallery === "function") initMoleculeGallery();
   if (typeof initWheelZoom2D === "function") initWheelZoom2D();
   if (typeof initAutoAlign2D === "function") initAutoAlign2D();
+
+  const syncCanvasLayout = () => {
+    if (typeof resizeAllCanvases === "function") resizeAllCanvases();
+  };
+  const ws = document.getElementById("workspace");
+  if (ws && typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(() => requestAnimationFrame(syncCanvasLayout)).observe(ws);
+  }
+  window.addEventListener("orientationchange", () => setTimeout(syncCanvasLayout, 180));
 });
