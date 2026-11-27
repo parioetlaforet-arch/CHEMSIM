@@ -1,8 +1,6 @@
- /* ms.morimoto <Laforet Pario <parioetlaforet@gmail.com>  */
 
-	 /*2026年11月25日 15:22*/
 
-    /* parioetlaforet@Gmail.com  M.morimoto   11_25_2026  */
+    /* parioetlaforet@Gmail.com  M.morimoto   11_27_2026  */
 // ======================================================================
 // 【第1章：基盤環境・幾何座標・システム設定 (Environment & Layout)】
 // 2D作業キャンバス寸法、グリッド吸着ピッチ、3Dビューア基本定数
@@ -4431,11 +4429,137 @@ const MOLECULE_DB = [
     }
   },
 
+{
+    id: "C4H9NO3",
+    formula: "C4H9NO3",
+    name: "トレオニン (Threonine)",
+    geometry: "主鎖アミノ酸骨格 + 1-ヒドロキシエチル側鎖",
+    signature: "C(C-1,C-1,H-1,N-1)|C(C-1,C-1,H-1,O-1)|C(C-1,H-1,H-1,H-1)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(O-1)|H(O-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-1,H-1)|O(C-2)",
+    desc: "側鎖にヒドロキシ基(-OH)とメチル基を持つ必須アミノ酸だ。セリンと並ぶ代表的なリン酸化サイトであり、タンパク質の立体構造や免疫関連タンパク質の機能にも関わる。",
+    model3D: {
+      atoms: [
+        { type: "C", x: 0.00, y: 0.00, z: 0.00 },
+        { type: "N", x: 0.00, y: -1.42, z: 0.00 },
+        { type: "C", x: 1.32, y: 0.72, z: 0.00 },
+        { type: "C", x: -1.32, y: 0.72, z: 0.00 },
+        { type: "H", x: 0.00, y: 0.42, z: 1.01 },
+        { type: "H", x: 0.88, y: -1.90, z: 0.00 },
+        { type: "H", x: -0.84, y: -1.94, z: 0.00 },
+        { type: "O", x: 2.38, y: 0.12, z: 0.00 },
+        { type: "O", x: 1.24, y: 2.06, z: 0.00 },
+        { type: "O", x: -1.32, y: 2.12, z: 0.00 },
+        { type: "C", x: -2.56, y: 0.12, z: 0.00 },
+        { type: "H", x: -1.32, y: 0.42, z: -1.04 },
+        { type: "H", x: 2.08, y: 2.51, z: 0.00 },
+        { type: "H", x: -2.22, y: 2.51, z: 0.00 },
+        { type: "H", x: -3.45, y: 0.74, z: 0.00 },
+        { type: "H", x: -2.58, y: -0.51, z: 0.89 },
+        { type: "H", x: -2.58, y: -0.51, z: -0.89 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 2, order: 1 },
+        { from: 0, to: 3, order: 1 },
+        { from: 0, to: 4, order: 1 },
+        { from: 1, to: 5, order: 1 },
+        { from: 1, to: 6, order: 1 },
+        { from: 2, to: 7, order: 2 },
+        { from: 2, to: 8, order: 1 },
+        { from: 3, to: 9, order: 1 },
+        { from: 3, to: 10, order: 1 },
+        { from: 3, to: 11, order: 1 },
+        { from: 8, to: 12, order: 1 },
+        { from: 9, to: 13, order: 1 },
+        { from: 10, to: 14, order: 1 },
+        { from: 10, to: 15, order: 1 },
+        { from: 10, to: 16, order: 1 }
+      ]
+    }
+  },
 
+{
+    id: "C4H9NO2",
+    formula: "C4H9NO2",
+    name: "GABA / γ-アミノ酪酸 (GABA)",
+    geometry: "柔軟な直鎖γ-アミノ酸骨格 (アミノ基 + 酪酸鎖)",
+    signature: "C(C-1,C-1,H-1,H-1)|C(C-1,C-1,H-1,H-1)|C(C-1,H-1,H-1,N-1)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(C-1)|H(N-1)|H(N-1)|H(O-1)|N(C-1,H-1,H-1)|O(C-1,H-1)|O(C-2)",
+    desc: "中枢神経系で働く代表的な抑制性神経伝達物質だ。グルタミン酸から作られ、神経の過剰な興奮を抑えてリラックスや睡眠調節などに関わり、食品成分としても親しまれている。",
+    model3D: {
+      atoms: [
+        { type: "N", x: -2.45, y: 0.25, z: 0.00 },
+        { type: "C", x: -1.25, y: -0.55, z: 0.00 },
+        { type: "C", x: 0.00, y: 0.25, z: 0.00 },
+        { type: "C", x: 1.25, y: -0.55, z: 0.00 },
+        { type: "C", x: 2.50, y: 0.25, z: 0.00 },
+        { type: "O", x: 2.50, y: 1.48, z: 0.00 },
+        { type: "O", x: 3.60, y: -0.45, z: 0.00 },
+        { type: "H", x: -3.28, y: -0.32, z: 0.00 },
+        { type: "H", x: -2.45, y: 0.85, z: 0.82 },
+        { type: "H", x: -1.25, y: -1.18, z: 0.89 },
+        { type: "H", x: -1.25, y: -1.18, z: -0.89 },
+        { type: "H", x: 0.00, y: 0.88, z: 0.89 },
+        { type: "H", x: 0.00, y: 0.88, z: -0.89 },
+        { type: "H", x: 1.25, y: -1.18, z: 0.89 },
+        { type: "H", x: 1.25, y: -1.18, z: -0.89 },
+        { type: "H", x: 4.35, y: 0.15, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 1, to: 2, order: 1 },
+        { from: 2, to: 3, order: 1 },
+        { from: 3, to: 4, order: 1 },
+        { from: 4, to: 5, order: 2 },
+        { from: 4, to: 6, order: 1 },
+        { from: 0, to: 7, order: 1 },
+        { from: 0, to: 8, order: 1 },
+        { from: 1, to: 9, order: 1 },
+        { from: 1, to: 10, order: 1 },
+        { from: 2, to: 11, order: 1 },
+        { from: 2, to: 12, order: 1 },
+        { from: 3, to: 13, order: 1 },
+        { from: 3, to: 14, order: 1 },
+        { from: 6, to: 15, order: 1 }
+      ]
+    }
+  },
 
-
-
-
+{
+    id: "C4H4O4",
+    formula: "C4H4O4",
+    name: "フマル酸 (Fumaric Acid)",
+    geometry: "トランス不飽和ジカルボン酸骨格 (C=C二重結合)",
+    signature: "C(C-1,C-2,H-1)|C(C-1,C-2,H-1)|C(C-1,O-1,O-2)|C(C-1,O-1,O-2)|H(C-1)|H(C-1)|H(O-1)|H(O-1)|O(C-1,H-1)|O(C-1,H-1)|O(C-2)|O(C-2)",
+    desc: "クエン酸回路(TCAサイクル)や尿素回路の中間体として働く不飽和ジカルボン酸だ。コハク酸の酸化で生じ、さらにリンゴ酸へと変換されるエネルギー代謝の要の一つであり、酸味料などにも利用される。",
+    model3D: {
+      atoms: [
+        { type: "C", x: -1.85, y: 0.25, z: 0.00 },
+        { type: "C", x: -0.67, y: -0.45, z: 0.00 },
+        { type: "C", x: 0.67, y: 0.45, z: 0.00 },
+        { type: "C", x: 1.85, y: -0.25, z: 0.00 },
+        { type: "O", x: -1.85, y: 1.48, z: 0.00 },
+        { type: "O", x: -2.98, y: -0.45, z: 0.00 },
+        { type: "H", x: -0.67, y: -1.53, z: 0.00 },
+        { type: "H", x: 0.67, y: 1.53, z: 0.00 },
+        { type: "O", x: 1.85, y: -1.48, z: 0.00 },
+        { type: "O", x: 2.98, y: 0.45, z: 0.00 },
+        { type: "H", x: -3.72, y: 0.18, z: 0.00 },
+        { type: "H", x: 3.72, y: -0.18, z: 0.00 }
+      ],
+      bonds: [
+        { from: 0, to: 1, order: 1 },
+        { from: 0, to: 4, order: 2 },
+        { from: 0, to: 5, order: 1 },
+        { from: 1, to: 2, order: 2 },
+        { from: 1, to: 6, order: 1 },
+        { from: 2, to: 3, order: 1 },
+        { from: 2, to: 7, order: 1 },
+        { from: 3, to: 8, order: 2 },
+        { from: 3, to: 9, order: 1 },
+        { from: 5, to: 10, order: 1 },
+        { from: 9, to: 11, order: 1 }
+      ]
+    }
+  },
 
 
 
@@ -5374,14 +5498,37 @@ if (course === "FAMILY") {
       .map(x => x.mol);
   }
 
-  if (course === "SCALE") {
+if (course === "SCALE") {
     return [...items]
       .sort((a, b) => (a.feat.totalAtoms - b.feat.totalAtoms) || ((b.feat.hasRing ? 1 : 0) - (a.feat.hasRing ? 1 : 0)))
       .map(x => x.mol);
   }
 
-  const remaining = [...items].sort((a, b) => a.feat.totalAtoms - b.feat.totalAtoms);
-  const chain = [remaining.shift()];
+  if (course === "FOOD") {
+    const foodMatchers = [
+      { nameKey: "安息香酸", formula: "C7H6O2" },
+      { nameKey: "アスコルビン酸", formula: "C6H8O6" },
+      { nameKey: "フマル酸", formula: "C4H4O4" },
+      { nameKey: "クエン酸", formula: "C6H8O7" },
+      { nameKey: "バニリン", formula: "C8H8O3" },
+      { nameKey: "メントール", formula: "C10H20O" }
+    ];
+    const foodItems = items.filter(({ mol }) => {
+      if (!mol) return false;
+      const molName = String(mol.name || "");
+      const molFormula = String(mol.formula || "");
+      return foodMatchers.some(
+        m => molName.includes(m.nameKey) || (m.formula && molFormula === m.formula)
+      );
+    });
+    if (foodItems.length > 0) {
+      return foodItems
+        .sort((a, b) => a.feat.totalAtoms - b.feat.totalAtoms)
+        .map(x => x.mol);
+    }
+  }
+
+  const remaining = [...items].sort((a, b) => a.feat.totalAtoms - b.feat.totalAtoms);  const chain = [remaining.shift()];
   while (remaining.length > 0) {
     const curr = chain[chain.length - 1].feat;
     let bestIdx = 0;
@@ -5413,9 +5560,9 @@ const DRILL_COURSE_LABELS = {
   ISOMER: "3:ISOMER",
   BIO: "4:BIO",
   HETERO: "5:HETERO",
-  SCALE: "6:SCALE"
+  SCALE: "6:SCALE",
+  FOOD: "7:FOOD"
 };
-
 
 // ハイブリッド・プログレッシブ分子ドリル動的生成エンジン (Lv.1 - Lv.5 / 応用コース)
 function generateChemDrill(lv, viewW, viewH) {
@@ -5577,7 +5724,13 @@ const isomerSwaps = {
 
     if (faultMode === "ISOMER_REWIRE" && isomerSwaps[targetId]) {
       const wrongMol = MOLECULE_DB.find(m => m.id === isomerSwaps[targetId]);
+     if (!wrongMol) {
+        modeLabel = "新規結線構築";
+        symptomHint = `指定された実在分子 [${targetMol.name}] を組み立てよ。`;
+      } else {
+
       const typeBuckets = {};
+
       atoms.forEach(a => {
         if (!typeBuckets[a.type]) typeBuckets[a.type] = [];
         typeBuckets[a.type].push(a.id);
@@ -5589,8 +5742,9 @@ const isomerSwaps = {
         to: wrongIdxToAtomId[wb.to],
         order: wb.order
       }));
-      modeLabel = "異性体再配線診断";
+    modeLabel = "異性体再配線診断";
       symptomHint = `原子価は一致しているが別の構造異性体に誤結線されている。結合を組み替えて [${targetMol.name}] へ修正せよ。`;
+      }
     } else if (faultMode === "MULTI_BREAK" && answerBonds.length >= 10) {
       initialBonds = JSON.parse(JSON.stringify(answerBonds));
       let removed = 0;
@@ -6215,9 +6369,11 @@ function evaluateMoleculeState() {
       .join(",");
     return `${a.type}(${neighbors})`;
   });
-  const signature = atomDescriptors.sort().join("|");
+const signature = atomDescriptors.sort().join("|");
 
-const matchedMolecule = MOLECULE_DB.find(m => m.signature === signature);
+  const matchedMolecule = typeof resolveMoleculeBySignature === "function"
+    ? resolveMoleculeBySignature(signature, atoms, bonds)
+    : MOLECULE_DB.find(m => m.signature === signature);
   if (!matchedMolecule) {
     const unlistedMol = buildUnlistedMolecule(atoms, bonds, signature);
     return {
@@ -8402,12 +8558,18 @@ if (drillModeBtn) {
     nextBtn.style.opacity = "1.0";
     nextBtn.textContent = "NEXT";
   }
-  if (ansBtn) {
+ if (ansBtn) {
     ansBtn.style.display = isDrill ? "inline-flex" : "none";
     ansBtn.disabled = !isDrill;
     ansBtn.style.opacity = "1.0";
     ansBtn.textContent = "ANS";
     ansBtn.classList.toggle("active", chemState.drill.showingAnswer && isDrill);
+  }
+  const foodCheckBtn = document.getElementById("btn-drill-food-check");
+  if (foodCheckBtn) {
+    foodCheckBtn.style.display = isDrill ? "inline-flex" : "none";
+    foodCheckBtn.disabled = !isDrill;
+    foodCheckBtn.style.opacity = "1.0";
   }
   elButtons.forEach(btn => {
     btn.style.opacity = isDrill ? "0.45" : "1.0";
@@ -8975,8 +9137,18 @@ const syncGalleryToggleActive = (isOpen) => {
       syncGalleryToggleActive(false);
     });
 
+  const sortBtn = document.createElement("button");
+    sortBtn.type = "button";
+    sortBtn.textContent = "並替: 登録順";
+    sortBtn.style.cssText = "background:#1e293b; border:1px solid #475569; color:#e2e8f0; padding:4px 10px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;";
+
+    const headerRight = document.createElement("div");
+    headerRight.style.cssText = "display:flex; align-items:center; gap:6px;";
+    headerRight.appendChild(sortBtn);
+    headerRight.appendChild(closeBtn);
+
     header.appendChild(title);
-    header.appendChild(closeBtn);
+    header.appendChild(headerRight);
     modal.appendChild(header);
 
     const grid = document.createElement("div");
@@ -9069,7 +9241,40 @@ const syncGalleryToggleActive = (isOpen) => {
         refreshSimulation();
       });
 
+   btn.dataset.origIdx = String(grid.children.length);
+      btn.dataset.formula = String(mol.formula || "");
+      btn.dataset.atoms = String((mol.model3D && Array.isArray(mol.model3D.atoms)) ? mol.model3D.atoms.length : 0);
+      const enMatch = String(mol.name || "").match(/\(([^)]+)\)\s*$/);
+      btn.dataset.alpha = (enMatch ? enMatch[1] : String(mol.name || "")).trim().toLowerCase();
       grid.appendChild(btn);
+    });
+
+    let sortModeIndex = 0;
+    const sortModes = [
+      {
+        label: "並替: 登録順",
+        compare: (a, b) => Number(a.dataset.origIdx) - Number(b.dataset.origIdx)
+      },
+      {
+        label: "並替: 英名順 (A-Z)",
+        compare: (a, b) => a.dataset.alpha.localeCompare(b.dataset.alpha, "en") || (Number(a.dataset.origIdx) - Number(b.dataset.origIdx))
+      },
+      {
+        label: "並替: 原子数順",
+        compare: (a, b) => (Number(a.dataset.atoms) - Number(b.dataset.atoms)) || (Number(a.dataset.origIdx) - Number(b.dataset.origIdx))
+      },
+      {
+        label: "並替: 分子式順",
+        compare: (a, b) => a.dataset.formula.localeCompare(b.dataset.formula, "en", { numeric: true }) || (Number(a.dataset.origIdx) - Number(b.dataset.origIdx))
+      }
+    ];
+
+    sortBtn.addEventListener("click", () => {
+      sortModeIndex = (sortModeIndex + 1) % sortModes.length;
+      const mode = sortModes[sortModeIndex];
+      sortBtn.textContent = mode.label;
+      const sortedButtons = Array.from(grid.children).sort(mode.compare);
+      sortedButtons.forEach(el => grid.appendChild(el));
     });
 
     modal.appendChild(grid);
@@ -9158,15 +9363,63 @@ function initWheelZoom2D() {
 // 【第8章：全自動テストスイート ＆ システム初期化 (Automated QA & Boot)】
 // 収録分子辞書の指紋一意性監査、初期サンプル配置、および起動シーケンス
 // ======================================================================
-function runDatabaseAudit() {
-  const sigSet = new Set();
-  MOLECULE_DB.forEach(mol => {
-    if (sigSet.has(mol.signature)) {
-      console.error(`[QA ERROR] 重複シグネチャ検出: ${mol.id}`);
-    }
-    sigSet.add(mol.signature);
+const TOPOLOGY_AUDIT_CONFIG = {
+  WL_DEPTH: 2,
+  USE_BOND_ORDER: false
+};
+
+function computeTopologyKey(atoms, bonds, config = TOPOLOGY_AUDIT_CONFIG) {
+  if (!Array.isArray(atoms) || atoms.length === 0) return "";
+  const idToIdx = new Map();
+  atoms.forEach((a, idx) => {
+    if (a && a.id !== undefined) idToIdx.set(a.id, idx);
   });
- console.log(`[CHEMSIM QA] 収録分子数: ${MOLECULE_DB.length}件 / 指紋一意性監査完了`);
+  const adj = atoms.map(() => []);
+  (Array.isArray(bonds) ? bonds : []).forEach(b => {
+    if (!b) return;
+    const u = typeof b.from === "number" ? b.from : idToIdx.get(b.from);
+    const v = typeof b.to === "number" ? b.to : idToIdx.get(b.to);
+    if (u === undefined || v === undefined || !adj[u] || !adj[v]) return;
+    const ordSuffix = config.USE_BOND_ORDER ? `-${b.order || 1}` : "";
+    adj[u].push({ to: v, ord: ordSuffix });
+    adj[v].push({ to: u, ord: ordSuffix });
+  });
+
+  let labels = atoms.map(a => String((a && a.type) || "?"));
+  const depth = Math.max(1, Number(config.WL_DEPTH) || 2);
+  for (let step = 0; step < depth; step++) {
+    labels = labels.map((lbl, idx) => {
+      const nbrs = adj[idx].map(edge => `${labels[edge.to]}${edge.ord}`).sort();
+      return `${lbl}(${nbrs.join(",")})`;
+    });
+  }
+  return labels.slice().sort().join("|");
+}
+
+function resolveMoleculeBySignature(boardSig, atoms, bonds) {
+  if (!boardSig || typeof MOLECULE_DB === "undefined" || !Array.isArray(MOLECULE_DB)) return null;
+  const candidates = MOLECULE_DB.filter(m => m && m.signature === boardSig);
+  if (candidates.length <= 1) return candidates[0] || null;
+  const boardTopo = computeTopologyKey(atoms, bonds);
+  const exact = candidates.find(m => m.model3D && computeTopologyKey(m.model3D.atoms, m.model3D.bonds) === boardTopo);
+  return exact || candidates[0];
+}
+
+function runDatabaseAudit() {
+  const fullKeyMap = new Map();
+  let isomerPairCount = 0;
+  MOLECULE_DB.forEach(mol => {
+    const topoKey = mol.model3D ? computeTopologyKey(mol.model3D.atoms, mol.model3D.bonds) : "";
+    const fullKey = `${mol.signature}::${topoKey}`;
+    if (fullKeyMap.has(fullKey)) {
+      console.error(`[QA ERROR] 完全重複分子検出: ${mol.id} (衝突先: ${fullKeyMap.get(fullKey)})`);
+    } else {
+      const hasSamePrimary = Array.from(fullKeyMap.keys()).some(k => k.startsWith(`${mol.signature}::`));
+      if (hasSamePrimary) isomerPairCount++;
+      fullKeyMap.set(fullKey, mol.id);
+    }
+  });
+  console.log(`[CHEMSIM QA] 収録分子数: ${MOLECULE_DB.length}件 (2段階トポロジー識別異性体: ${isomerPairCount}組) / 指紋一意性監査完了`);
 }
 
 function inspectSignatureMatch(targetId = null) {
@@ -9175,15 +9428,16 @@ function inspectSignatureMatch(targetId = null) {
   const boardSig = evalRes.signature || "";
   const dbMol = targetId
     ? MOLECULE_DB.find(m => m.id === targetId || m.formula === targetId)
-    : MOLECULE_DB.find(m => m.signature === boardSig);
+    : resolveMoleculeBySignature(boardSig, chemState.atoms, chemState.bonds);
   const dbSig = dbMol ? dbMol.signature : "";
-  const isMatch = Boolean(boardSig && dbSig && boardSig === dbSig);
+  const boardTopo = computeTopologyKey(chemState.atoms, chemState.bonds);
+  const dbTopo = (dbMol && dbMol.model3D) ? computeTopologyKey(dbMol.model3D.atoms, dbMol.model3D.bonds) : "";
+  const isMatch = Boolean(boardSig && dbSig && boardSig === dbSig && (!dbTopo || boardTopo === dbTopo));
   console.log("[SIG INSPECT] 一致:", isMatch, "| 対象:", dbMol ? `${dbMol.id} (${dbMol.name})` : "(未検出)");
   console.log("[SIG INSPECT] 盤面:", boardSig);
   console.log("[SIG INSPECT] DB  :", dbSig);
   return { isMatch, boardSig, dbSig, matched: dbMol || null };
 }
-
 function loadStarterMethane() {
   clearWorkspace(false);
   const cx = 800;
